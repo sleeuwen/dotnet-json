@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-json", "dotnet-json\dotnet-json.csproj", "{87D1B300-F18B-4C61-81A5-5E3001DCD3DE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dotnet-json.Tests", "dotnet-json.Tests\dotnet-json.Tests.csproj", "{A434638F-C544-4571-92B0-F637C1D98F47}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{87D1B300-F18B-4C61-81A5-5E3001DCD3DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{87D1B300-F18B-4C61-81A5-5E3001DCD3DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{87D1B300-F18B-4C61-81A5-5E3001DCD3DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{87D1B300-F18B-4C61-81A5-5E3001DCD3DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A434638F-C544-4571-92B0-F637C1D98F47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A434638F-C544-4571-92B0-F637C1D98F47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A434638F-C544-4571-92B0-F637C1D98F47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A434638F-C544-4571-92B0-F637C1D98F47}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
