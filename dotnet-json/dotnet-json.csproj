@@ -4,12 +4,21 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>dotnet_json</RootNamespace>
-    
+
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>json</ToolCommandName>
+    <ToolCommandName>dotnet-json</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
-    
-    <Version>0.1.0</Version>
+
+    <Version>0.1.1</Version>
+    <PackageId>dotnet-json</PackageId>
+    <Authors>sleeuwen</Authors>
+    <RepositoryUrl>https://github.com/sleeuwen/dotnet-json</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <Description>.NET Core global tool for manipulation JSON files.</Description>
+    <PackageDescription>.NET Core global tool for manipulation JSON files.</PackageDescription>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Title>dotnet-json</Title>
   </PropertyGroup>
 
   <ItemGroup>
