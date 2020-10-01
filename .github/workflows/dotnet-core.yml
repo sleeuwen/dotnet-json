@@ -23,7 +23,7 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Publish NuGet
-      if: success() && github.event == 'push' && github.ref == 'master'
+      if: success() && github.event == 'push' && github.ref == 'refs/heads/master'
       uses: brandedoutcast/publish-nuget@v2.5.5
       with:
         PROJECT_FILE_PATH: dotnet-json/dotnet-json.csproj
