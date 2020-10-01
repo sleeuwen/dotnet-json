@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.CommandLine.Parsing;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,30 +13,34 @@ namespace dotnet_json.Commands
 {
     public class MergeCommand : Command, ICommandHandler
     {
-        private Argument<string> FileBase = new Argument<string>("file", "main file to merge other files into") { Arity = ArgumentArity.ExactlyOne };
+        private Argument<string> FileBase = new Argument<string>("file", "The name of the first file (use '-' to read from STDIN)") { Arity = ArgumentArity.ExactlyOne };
 
-        private Argument<string> Files = new Argument<string>("files", "json files to merge into the main file") { Arity = ArgumentArity.OneOrMore };
+        private Argument<string> Files = new Argument<string>("files", "The names of the files to merge with the first file.") { Arity = ArgumentArity.OneOrMore };
+
+        private Option<string> Output = new Option<string>(new[] { "-o", "--output" }, "The filename to write the merge result into, leave out to write back into the first file (use '-' to write to STDOUT).") { Argument = { Name = "file", Arity = ArgumentArity.ExactlyOne } };
 
         public MergeCommand() : base("merge", "merge two or more json files into one")
         {
             AddArgument(FileBase);
             AddArgument(Files);
 
+            AddOption(Output);
+
             Handler = this;
         }
 
         public async Task<int> InvokeAsync(InvocationContext context)
         {
-
             var mainFile = context.ParseResult.ValueForArgument(FileBase);
             var files = context.ParseResult.ValueForArgument<List<string>>(Files);
+            var outFile = context.ParseResult.HasOption(Output) ? context.ParseResult.ValueForOption(Output) : mainFile;
 
-            await MergeFiles(mainFile, files);
+            await MergeFiles(mainFile, files, outFile);
 
             return 0;
         }
 
-        internal async Task MergeFiles(string mainFile, IEnumerable<string> mergeFiles)
+        internal async Task MergeFiles(string mainFile, IEnumerable<string> mergeFiles, string outFile)
         {
             var content = await ReadFileAsync(mainFile);
             var json = JObject.Parse(content);
@@ -48,10 +53,10 @@ namespace dotnet_json.Commands
                 Merge(json, mergeJson);
             }
 
-            await (mainFile switch
+            await (outFile switch
             {
                 "-" => Console.Out.WriteAsync(json.ToString(Formatting.Indented)),
-                _ => File.WriteAllTextAsync(mainFile, json.ToString(Formatting.Indented), new UTF8Encoding(false)),
+                _ => File.WriteAllTextAsync(outFile, json.ToString(Formatting.Indented), new UTF8Encoding(false)),
             });
         }
 

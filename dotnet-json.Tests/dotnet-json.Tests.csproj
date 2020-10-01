@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.0.0-alpha0001" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
     <PackageReference Include="xunit" Version="2.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
@@ -16,10 +17,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\dotnet-json\dotnet-json.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="IntegrationTests\fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

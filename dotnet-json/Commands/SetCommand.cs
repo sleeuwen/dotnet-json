@@ -1,3 +1,4 @@
+using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
@@ -10,8 +11,7 @@ namespace dotnet_json.Commands
 {
     public class SetCommand : Command, ICommandHandler
     {
-        private Argument<FileInfo> File = new Argument<FileInfo>("file", "The JSON file") { Arity = ArgumentArity.ExactlyOne }
-            .ExistingOnly();
+        private Argument<string> File = new Argument<string>("file", "The JSON file  (use '-' to read from STDIN and write to STDOUT)") { Arity = ArgumentArity.ExactlyOne };
 
         private Argument<string> Key = new Argument<string>("key", "The key to set (use ':' to set nested object and use index numbers to set array values eg. nested:key or nested:1:key)") { Arity = ArgumentArity.ExactlyOne };
 
@@ -30,41 +30,83 @@ namespace dotnet_json.Commands
         {
             var file = context.ParseResult.ValueForArgument(File);
             var key = context.ParseResult.ValueForArgument(Key);
-            object value = context.ParseResult.ValueForArgument(Value);
+            var value = context.ParseResult.ValueForArgument(Value);
 
-            var content = await System.IO.File.ReadAllTextAsync(file.FullName);
+            var content = file switch
+            {
+                "-" => await Console.In.ReadToEndAsync(),
+                _ => await System.IO.File.ReadAllTextAsync(file),
+            };
             var json = JObject.Parse(content);
-
-            if (int.TryParse((string)value, out var intValue))
-                value = intValue;
 
             SetValue(json, key, value);
 
-            await System.IO.File.WriteAllTextAsync(file.FullName, json.ToString(Formatting.Indented), new UTF8Encoding(false));
+            await (file switch
+            {
+                "-" => Console.Out.WriteAsync(json.ToString(Formatting.Indented)),
+                _ => System.IO.File.WriteAllTextAsync(file, json.ToString(Formatting.Indented), new UTF8Encoding(false)),
+            });
             return 0;
         }
 
-        internal void SetValue(JToken json, string key, object value)
+        internal void SetValue(JToken json, string key, string value)
         {
             var idx = key.IndexOf(':');
 
+            var isIndex = int.TryParse(idx < 0 ? key : key.Substring(0, idx), out var index) && index >= 0;
 
             if (idx < 0)
             {
-                json[key] = new JValue(value);
+                if (json is JArray jArray && isIndex)
+                    jArray.Insert(index, ToJValue(value));
+                else if (json is JObject)
+                    json[key] = ToJValue(value);
+                else
+                    throw new Exception($"Cannot set value of '{key}' as the expected types are not the same (Expected {(isIndex ? "array" : "object")}, got {GetType(json)}).");
+
                 return;
             }
 
             var subkey = key.Substring(0, idx);
             var nextKey = key.Substring(idx + 1);
-            var subjson = json[subkey];
+
+            JToken? subjson = null;
+            if (isIndex && json is JArray jsonArray)
+                subjson = jsonArray.Count > index ? jsonArray[index] : null;
+            else if (json is JObject jsonObject)
+                subjson = jsonObject[subkey];
+            else
+                throw new Exception($"Cannot set value of '{key}' as the expected types are not the same (Expected {(isIndex ? "array" : "object")}, got {GetType(json)}).");
 
             if (subjson == null)
             {
-                json[subkey] = subjson = new JObject();
+                var nextIndex = nextKey.IndexOf(':');
+                var nextIsIndex = int.TryParse(nextKey.Substring(0, nextIndex < 0 ? nextKey.Length : nextIndex), out _);
+
+                if (json is JArray jArray)
+                    jArray.Insert(index, subjson = nextIsIndex ? (JToken)new JArray() : new JObject());
+                else
+                    json[subkey] = subjson = nextIsIndex ? (JToken)new JArray() : new JObject();
             }
 
             SetValue(subjson, nextKey, value);
         }
+
+        private static JValue ToJValue(string value)
+            => value switch
+            {
+                var n when n.ToLowerInvariant() == "null" => new JValue((object?)null),
+                var b when bool.TryParse(b, out var boolean) => new JValue(boolean),
+                var i when long.TryParse(i, out var digit) => new JValue(digit),
+                var d when decimal.TryParse(d, out var number) => new JValue(number),
+                var str => new JValue(str),
+            };
+
+        private static string GetType(JToken token) => token switch
+        {
+            JObject _ => "object",
+            JArray _ => "array",
+            JValue _ => "value",
+        };
     }
 }

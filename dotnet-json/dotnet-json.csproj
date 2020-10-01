@@ -9,7 +9,7 @@
     <ToolCommandName>dotnet-json</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
 
-    <Version>0.1.1</Version>
+    <Version>0.2.0</Version>
     <PackageId>dotnet-json</PackageId>
     <Authors>sleeuwen</Authors>
     <RepositoryUrl>https://github.com/sleeuwen/dotnet-json</RepositoryUrl>
