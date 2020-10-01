@@ -28,3 +28,5 @@ jobs:
       with:
         PROJECT_FILE_PATH: dotnet-json/dotnet-json.csproj
         PACKAGE_NAME: dotnet-json
+      env:
+        NUGET_KEY: ${{ secrets.NUGET_KEY }}
