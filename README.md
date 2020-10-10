@@ -22,6 +22,7 @@ Options:
 Commands:
   merge <file> <files>        merge two or more json files into one
   set <file> <key> <value>    set a value in a json file
+  remove <file> <key>         Remove a value from the json
 ```
 
 ### Commands
@@ -38,11 +39,11 @@ Usage:
   dotnet-json merge [options] <file> <files>...
 
 Arguments:
-  <file>     The name of the first file (use '-' to read from STDIN)
+  <file>     The JSON file (use '-' for STDIN)
   <files>    The names of the files to merge with the first file.
 
 Options:
-  -o, --output <file>    The filename to write the merge result into, leave out to write back into the first file (use '-' to write to STDOUT).
+  -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
   -?, -h, --help         Show help and usage information
 ```
 
@@ -58,10 +59,31 @@ Usage:
   dotnet-json set [options] <file> <key> <value>
 
 Arguments:
-  <file>     The JSON file (use '-' to read from STDIN and write to STDOUT)
+  <file>     The JSON file (use '-' for STDIN)
   <key>      The key to set (use ':' to set nested object and use index numbers to set array values eg. nested:key or nested:1:key)
   <value>    The value to set
 
 Options:
-  -?, -h, --help    Show help and usage information
+  -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
+  -?, -h, --help         Show help and usage information
+```
+
+#### remove
+
+Updates the json file to remove a key from the file. Use `:` as separator for nested objects.
+
+```
+remove:
+  Remove a value from the json
+
+Usage:
+  dotnet-json remove [options] <file> <key>
+
+Arguments:
+  <file>    The JSON file (use '-' for STDIN)
+  <key>     The JSON key to remove
+
+Options:
+  -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
+  -?, -h, --help         Show help and usage information
 ```

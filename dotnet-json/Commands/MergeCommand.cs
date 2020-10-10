@@ -42,7 +42,7 @@ namespace dotnet_json.Commands
             return 0;
         }
 
-        private Stream GetStream(string filename) => filename switch
+        private static Stream GetStream(string filename) => filename switch
         {
             "-" => Console.OpenStandardInput(),
             _ => File.OpenRead(filename),
