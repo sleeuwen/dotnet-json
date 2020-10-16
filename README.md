@@ -22,7 +22,8 @@ Options:
 Commands:
   merge <file> <files>        merge two or more json files into one
   set <file> <key> <value>    set a value in a json file
-  remove <file> <key>         Remove a value from the json
+  remove, rm <file> <key>     Remove a value from the json
+  get <file> <key>            Read a value from a JSON file.
 ```
 
 ### Commands
@@ -86,4 +87,24 @@ Arguments:
 Options:
   -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
   -?, -h, --help         Show help and usage information
+```
+
+#### get
+
+Reads the json file and returns the value for the given key.
+
+```
+get:
+  Read a value from a JSON file.
+
+Usage:
+  dotnet-json get [options] <file> <key>
+
+Arguments:
+  <file>    The JSON file (use '-' for STDIN)
+  <key>     The key to get (use ':' to get a nested object and use index numbers to get array values eg. nested:key or nested:1:key)
+
+Options:
+  -e, --exact       only return exact value matches, this will return an error for references to nested objects/arrays.
+  -?, -h, --help    Show help and usage information
 ```
