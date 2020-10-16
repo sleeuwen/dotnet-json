@@ -30,3 +30,21 @@ jobs:
         PACKAGE_NAME: dotnet-json
       env:
         NUGET_KEY: ${{ secrets.NUGET_KEY }}
+    - name: Create release
+      if: success() && steps.publish_nuget.output.version != ''
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ steps.publish_nuget.output.version }}
+        release_name: ${{ steps.publish_nuget.output.version }}
+        body: ""
+    - name: Publish dotnet-json.exe
+      if: success() && steps.publish_nuget.outputs.version != ''
+      run: dotnet publish -c Release -o ./output --self-contained true -r win-x86 -p:PublishSingleFile=true -p:PublishTrimmed=true
+    - name: Upload dotnet-json.exe release asset
+      if: success() && steps.publish_nuget.output.version != ''
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./output/dotnet-json.exe
+        asset_name: dotnet-json.exe
+        asset_content_type: application/octet-stream
