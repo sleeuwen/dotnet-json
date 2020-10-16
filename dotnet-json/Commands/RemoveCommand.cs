@@ -15,6 +15,8 @@ namespace dotnet_json.Commands
         {
             AddArgument(Key);
 
+            AddAlias("rm");
+
             Handler = this;
         }
 

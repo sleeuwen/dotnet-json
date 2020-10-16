@@ -14,31 +14,33 @@ namespace dotnet_json.Commands
     {
         protected FileArgument InputFile = new FileArgument("file", "The JSON file (use '-' for STDIN)");
 
-        protected FileOption OutputFile = new FileOption(new[] { "-o", "--output" }, "The output file (use '-' for STDOUT, defaults to <file>)") { Argument = { Name = "file", Arity = ArgumentArity.ZeroOrOne } };
+        protected FileOption OutputFile = new FileOption(new[] { "-o", "--output" }, "The output file (use '-' for STDOUT, defaults to <file>)") { AllowNewFile = true };
 
         protected Option<bool> Compressed = new Option<bool>(new[] { "-c", "--compressed" }, "Write the output in compressed form (defaults to indented)");
 
-        private InvocationContext? _context = null;
+        protected InvocationContext? Context = null;
 
-        protected CommandBase(string name, string? description = null)
+        protected CommandBase(string name, string? description = null, bool includeOutputOption = true)
             : base(name, description)
         {
             AddArgument(InputFile);
-            AddOption(OutputFile);
+
+            if (includeOutputOption)
+                AddOption(OutputFile);
 
             Handler = this;
         }
 
         public Task<int> InvokeAsync(InvocationContext context)
         {
-            _context = context;
+            Context = context;
 
             return ExecuteAsync();
         }
 
         protected Stream GetInputStream()
         {
-            var filename = _context?.ParseResult.ValueForArgument(InputFile) ?? throw new Exception("GetInputStream must be called from a command handler");
+            var filename = Context?.ParseResult.ValueForArgument(InputFile) ?? throw new Exception("GetInputStream must be called from a command handler");
 
             return filename switch
             {
@@ -49,20 +51,20 @@ namespace dotnet_json.Commands
 
         protected Stream GetOutputStream()
         {
-            var filename = _context?.ParseResult.HasOption(OutputFile) ?? throw new Exception("GetOutputStream() must be called from a command handler")
-                ? _context.ParseResult.ValueForOption(OutputFile)
-                : _context.ParseResult.ValueForArgument(InputFile);
+            var filename = Context?.ParseResult.HasOption(OutputFile) ?? throw new Exception("GetOutputStream() must be called from a command handler")
+                ? Context.ParseResult.ValueForOption(OutputFile)
+                : Context.ParseResult.ValueForArgument(InputFile);
 
             return filename switch
             {
                 "-" => Console.OpenStandardOutput(),
-                _ => File.OpenWrite(filename),
+                _ => File.Create(filename),
             };
         }
 
         protected Formatting GetFormatting()
         {
-            return _context?.ParseResult.HasOption(Compressed) ?? throw new Exception("GetFormatting() must be called from a command handler")
+            return Context?.ParseResult.HasOption(Compressed) ?? throw new Exception("GetFormatting() must be called from a command handler")
                 ? Formatting.None
                 : Formatting.Indented;
         }
@@ -70,13 +72,13 @@ namespace dotnet_json.Commands
         [return: MaybeNull]
         protected T GetParameterValue<T>(Argument<T> argument)
         {
-            return (_context ?? throw new Exception("GetParameterValue() must be called from a command handler"))
+            return (Context ?? throw new Exception("GetParameterValue() must be called from a command handler"))
                 .ParseResult.ValueForArgument(argument);
         }
 
         protected List<T>? GetMultiParameterValue<T>(Argument<T> argument)
         {
-            return (_context ?? throw new Exception("GetMultiParameterValue() must be called from a command handler"))
+            return (Context ?? throw new Exception("GetMultiParameterValue() must be called from a command handler"))
                 .ParseResult.ValueForArgument<List<T>>(argument);
         }
 

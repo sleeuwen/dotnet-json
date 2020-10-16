@@ -12,13 +12,14 @@ namespace dotnet_json
             return await command.InvokeAsync(args);
         }
 
-        private static RootCommand CreateRootCommand()
+        internal static RootCommand CreateRootCommand()
         {
             var root = new RootCommand("JSON .NET Global Tool");
 
             root.AddCommand(new MergeCommand());
             root.AddCommand(new SetCommand());
             root.AddCommand(new RemoveCommand());
+            root.AddCommand(new GetCommand());
 
             return root;
         }

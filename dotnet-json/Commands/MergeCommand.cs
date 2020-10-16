@@ -1,13 +1,12 @@
 using System;
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using System.IO;
 using System.Threading.Tasks;
 using dotnet_json.Core;
 
 namespace dotnet_json.Commands
 {
-    public class MergeCommand : CommandBase, ICommandHandler
+    public class MergeCommand : CommandBase
     {
         private FileArgument Files = new FileArgument("files", "The names of the files to merge with the first file.") { Arity = ArgumentArity.OneOrMore };
 

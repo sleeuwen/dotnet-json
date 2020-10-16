@@ -1,4 +1,3 @@
-using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
@@ -27,7 +26,7 @@ namespace dotnet_json.Tests
 
                 exitCode.Should().Be(0);
                 console.Error.ToString().Should().BeEmpty();
-                console.Out.ToString().Should().Contain($"Success {filename}");
+                console.Out.ToString().Should().Contain("Success");
             }
             finally
             {
@@ -42,7 +41,7 @@ namespace dotnet_json.Tests
 
             exitCode.Should().Be(0);
             console.Error.ToString().Should().BeEmpty();
-            console.Out.ToString().Should().Contain("Success -");
+            console.Out.ToString().Should().Contain("Success");
         }
 
         [Fact]
@@ -54,9 +53,20 @@ namespace dotnet_json.Tests
             console.Error.ToString().Should().Contain("File does not exist: this-file-does-not-exist.json");
         }
 
-        private async Task<(int ExitCode, IConsole Console)> RunCommand(string filename)
+        [Fact]
+        public async Task DoesNotThrowOnNonExistingFileIfAllowNewFileIsTrue()
+        {
+            var (exitCode, console) = await RunCommand("this-file-does-not-exist.json", allowNewFile: true);
+
+            exitCode.Should().Be(0);
+            console.Error.ToString().Should().BeEmpty();
+            console.Out.ToString().Should().Contain("Success");
+        }
+
+        private async Task<(int ExitCode, IConsole Console)> RunCommand(string filename, bool allowNewFile = false)
         {
             var file = new FileArgument("file");
+            file.AllowNewFile = allowNewFile;
 
             var command = new RootCommand();
             command.AddArgument(file);

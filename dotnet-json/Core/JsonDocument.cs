@@ -37,8 +37,9 @@ namespace dotnet_json.Core
                 SetValue(key, ToValue(value));
         }
 
-        public object this[string key]
+        public object? this[string key]
         {
+            get => FindToken(key);
             set => SetValue(key, value);
         }
 

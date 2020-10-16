@@ -17,11 +17,14 @@ namespace dotnet_json.Commands
             AddValidator();
         }
 
+        public bool AllowNewFile { get; set; }
+
         private void AddValidator()
         {
             this.AddValidator(symbol =>
                 symbol.Tokens
                     .Select(t => t.Value)
+                    .Where(_ => !AllowNewFile) // Need to check AllowNewFile at this point because AddValidator() is called from constructor
                     .Where(filePath => filePath != "-")
                     .Where(filePath => !File.Exists(filePath))
                     .Select(filePath => $"File does not exist: {filePath}")

@@ -10,15 +10,21 @@ namespace dotnet_json.Commands
         public FileOption(string alias, string? description = null)
             : base(alias, description)
         {
-            base.Argument = new FileArgument();
+            base.Argument = new FileArgument("file") { Arity = ArgumentArity.ExactlyOne };
             _initialized = true;
         }
 
         public FileOption(string[] aliases, string? description = null)
             : base(aliases, description)
         {
-            base.Argument = new FileArgument();
+            base.Argument = new FileArgument("file") { Arity = ArgumentArity.ExactlyOne };
             _initialized = true;
+        }
+
+        public bool AllowNewFile
+        {
+            get => ((FileArgument)Argument).AllowNewFile;
+            set => ((FileArgument)Argument).AllowNewFile = value;
         }
 
         public override Argument Argument
