@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>dotnet_json</RootNamespace>
+    <RollForward>LatestMajor</RollForward>
     
     <LangVersion>8.0</LangVersion>
     <Nullable>enable</Nullable>
