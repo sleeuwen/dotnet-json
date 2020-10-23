@@ -107,37 +107,21 @@ namespace dotnet_json.Tests
         }
 
         [Fact]
-        public async Task Merge_DoesNotLeaveTraceOfPreviousJsonInFile()
+        public async Task Get()
         {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-  // This file uses comments
-  ""b"": {
-    // To have more lines of JSON
-    // then the resulting file
-    ""key"": ""value""
-  }
-  // So to test that it does not leave behind
-  // data from the previous file and it still
-  // is a valid JSON file after merge
-}");
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{ ""a"": 1 }");
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{""key"": ""value""}");
 
             var (exitCode, console) = await RunCommand(new[]
             {
-                "merge",
+                "get",
                 Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"),
+                "key",
             });
 
             exitCode.Should().Be(0);
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""b"": {
-    ""key"": ""value""
-  },
-  ""a"": 1
-}");
+            console.Error.ToString().Should().BeEmpty();
+            console.Out.ToString().Should().Be("value\n");
         }
 
         private async Task<(int ExitCode, IConsole Console)> RunCommand(string[] args)

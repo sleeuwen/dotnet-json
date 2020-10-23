@@ -1,5 +1,6 @@
 using System;
 using System.CommandLine;
+using System.CommandLine.IO;
 using System.Threading.Tasks;
 using dotnet_json.Core;
 using Newtonsoft.Json.Linq;
@@ -31,17 +32,17 @@ namespace dotnet_json.Commands
             var result = document[key];
             if (result == null)
             {
-                Console.Error.WriteLine($"Key '{key}' does not exist in the json");
+                Context!.Console.Error.WriteLine($"Key '{key}' does not exist in the json");
                 return 1;
             }
 
             if (Context!.ParseResult.ValueForOption(Exact) && !(result is JValue))
             {
-                Console.Error.WriteLine($"Value for key '{key}' is a complex object.");
+                Context!.Console.Error.WriteLine($"Value for key '{key}' is a complex object.");
                 return 1;
             }
 
-            Console.WriteLine(ToString(result));
+            Context!.Console.Out.WriteLine(ToString(result));
             return 0;
         }
 
@@ -51,7 +52,7 @@ namespace dotnet_json.Commands
             JValue value when value.Value is null => "null",
             JValue value => ToString(value.Value!),
             bool b => b.ToString().ToLowerInvariant(),
-            _ => obj.ToString() ?? "null",
+            _ => obj.ToString() ?? "",
         };
     }
 }
