@@ -1,5 +1,7 @@
 # dotnet-json
 
+[![Nuget](https://img.shields.io/nuget/v/dotnet-json)](https://www.nuget.org/packages/dotnet-json/)
+
 .NET Core 3.1 global tool for manipulating JSON files.
 
 ## Installation
