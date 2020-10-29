@@ -23,6 +23,7 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Publish NuGet
+      id: publish_nuget
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: brandedoutcast/publish-nuget@v2.5.5
       with:
@@ -31,17 +32,18 @@ jobs:
       env:
         NUGET_KEY: ${{ secrets.NUGET_KEY }}
     - name: Create release
-      if: success() && steps.publish_nuget.output.version != ''
+      id: create_release
+      if: success() && steps.publish_nuget.outputs.version != ''
       uses: actions/create-release@v1
       with:
-        tag_name: ${{ steps.publish_nuget.output.version }}
-        release_name: ${{ steps.publish_nuget.output.version }}
+        tag_name: ${{ steps.publish_nuget.outputs.version }}
+        release_name: ${{ steps.publish_nuget.outputs.version }}
         body: ""
     - name: Publish dotnet-json.exe
       if: success() && steps.publish_nuget.outputs.version != ''
       run: dotnet publish -c Release -o ./output --self-contained true -r win-x86 -p:PublishSingleFile=true -p:PublishTrimmed=true
     - name: Upload dotnet-json.exe release asset
-      if: success() && steps.publish_nuget.output.version != ''
+      if: success() && steps.publish_nuget.outputs.version != ''
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
