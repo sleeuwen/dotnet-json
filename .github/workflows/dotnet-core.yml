@@ -39,14 +39,33 @@ jobs:
         tag_name: ${{ steps.publish_nuget.outputs.version }}
         release_name: ${{ steps.publish_nuget.outputs.version }}
         body: ""
-    - name: Publish dotnet-json.exe
+    - name: Publish dotnet-json executables
       if: success() && steps.publish_nuget.outputs.version != ''
-      run: dotnet publish -c Release -o ./output --self-contained true -r win-x86 -p:PublishSingleFile=true -p:PublishTrimmed=true
-    - name: Upload dotnet-json.exe release asset
+      run: |
+        dotnet publish -c Release -o ./output/win --self-contained true -r win-x86 -p:PublishSingleFile=true -p:PublishTrimmed=true
+        dotnet publish -c Release -o ./output/linux --self-contained true -r linux-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true
+        dotnet publish -c Release -o ./output/osx --self-contained true -r osx-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true
+    - name: Upload windows release asset
       if: success() && steps.publish_nuget.outputs.version != ''
       uses: actions/upload-release-asset@v1
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./output/dotnet-json.exe
+        asset_path: ./output/win/dotnet-json.exe
         asset_name: dotnet-json.exe
         asset_content_type: application/octet-stream
+    - name: Upload linux release asset
+      if: success() && steps.publish_nuget.outputs.version != ''
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./output/linux/dotnet-json
+        asset_name: dotnet-json-linux
+        asset_content_type: application/octet-stream
+    - name: Upload osx release asset
+      if: success() && steps.publish_nuget.outputs.version != ''
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./output/osx/dotnet-json
+        asset_name: dotnet-json-osx
+        asset_content_type: application/json

@@ -9,10 +9,10 @@ namespace dotnet_json.Core
 {
     internal sealed class JsonDocument
     {
-        private static readonly Encoding UTF8EncodingWithoutBOM = new UTF8Encoding(false);
+        private static readonly Encoding Utf8EncodingWithoutBom = new UTF8Encoding(false);
         private static readonly JsonSerializer Serializer = JsonSerializer.CreateDefault();
 
-        internal JToken _json;
+        internal readonly JToken _json;
 
         internal JsonDocument(JToken json)
         {
@@ -27,7 +27,7 @@ namespace dotnet_json.Core
 
         public void WriteToStream(Stream stream, Formatting formatting = Formatting.Indented)
         {
-            using var sw = new StreamWriter(stream, UTF8EncodingWithoutBOM);
+            using var sw = new StreamWriter(stream, Utf8EncodingWithoutBom);
             sw.Write(_json.ToString(formatting));
         }
 

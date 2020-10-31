@@ -1,112 +1,90 @@
 # dotnet-json
 
-[![Nuget](https://img.shields.io/nuget/v/dotnet-json)](https://www.nuget.org/packages/dotnet-json/)
+[![nuget](https://img.shields.io/nuget/v/dotnet-json)](https://www.nuget.org/packages/dotnet-json/)
 
-.NET Core 3.1 global tool for manipulating JSON files.
+dotnet-json is a command line tool for working with and manipulating JSON files for example in CI/CD pipelines.
+
+dotnet-json allows you to do basic manipulation of JSON files like setting the value of a specific (nested) key, or deleting a key,
+as well as merging two or more JSON files into one.
 
 ## Installation
 
-`dotnet tool install -g dotnet-json`
+dotnet-json can be installed as a .NET Core (global) tool or be downloaded directly from the [GitHub releases](https://github.com/sleeuwen/dotnet-json/releases).
+
+To install dotnet-json as a global tool, run the following command:
+
+```
+dotnet tool install -g dotnet-json
+```
 
 ## Usage
 
-```
-dotnet-json:
-  JSON .NET Global Tool
+When you installed dotnet-json as a .NET Core global tool, you can run it as either `dotnet json` or `dotnet-json`.
 
-Usage:
-  dotnet-json [options] [command]
+dotnet-json has 4 sub-commands, `merge`, `set`, `remove` and `get`.
 
-Options:
-  --version         Show version information
-  -?, -h, --help    Show help and usage information
-
-Commands:
-  merge <file> <files>        merge two or more json files into one
-  set <file> <key> <value>    set a value in a json file
-  remove, rm <file> <key>     Remove a value from the json
-  get <file> <key>            Read a value from a JSON file.
-```
-
-### Commands
-
-#### Merge
+### Merge
 
 Merges two or more files into the first, writing it back to the first file or into a specified output file.
 
+**Usage:**
 ```
-merge:
-  merge two or more json files into one
-
-Usage:
-  dotnet-json merge [options] <file> <files>...
-
-Arguments:
-  <file>     The JSON file (use '-' for STDIN)
-  <files>    The names of the files to merge with the first file.
-
-Options:
-  -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
-  -?, -h, --help         Show help and usage information
+dotnet json merge <input file> <merge files...> [-o|--output <output file>]
 ```
 
-#### Set
+**Arguments:**
 
-Updates the json file to set a value for a key. Use `:` as separator for nesting objects.
+- _\<input file>_ The first JSON file used as base to merge the other files' contents into, also used as default output
+- _\<merge files...>_ One or more JSON files that are merged into the first file
 
+**Options:**
+- _-o|--output file_ Write the merge result to a custom output file instead of using the input file 
+
+### Set
+
+Set a specific value in the JSON file. Use `:` as separator for nesting objects.
+
+**Usage:**
 ```
-set:
-  set a value in a json file
-
-Usage:
-  dotnet-json set [options] <file> <key> <value>
-
-Arguments:
-  <file>     The JSON file (use '-' for STDIN)
-  <key>      The key to set (use ':' to set nested object and use index numbers to set array values eg. nested:key or nested:1:key)
-  <value>    The value to set
-
-Options:
-  -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
-  -?, -h, --help         Show help and usage information
+dotnet json set <file> <key> <value> [-o|--output <output file>]
 ```
 
-#### remove
+**Arguments:**
+- _\<file>_ The file to read the JSON from and write the result to unless `-o` is given.
+- _\<key>_ The key to update or create, use `:` to separate nested objects.
+- _\<value>_ The value to set the key to
 
-Updates the json file to remove a key from the file. Use `:` as separator for nested objects.
+**Options:**
+- _-o|--output file_ Write the result to a custom output file instead of using the input file
 
+### remove
+
+Removes a key/value pair or complex object from a JSON file.
+
+**Usage:**
 ```
-remove:
-  Remove a value from the json
-
-Usage:
-  dotnet-json remove [options] <file> <key>
-
-Arguments:
-  <file>    The JSON file (use '-' for STDIN)
-  <key>     The JSON key to remove
-
-Options:
-  -o, --output <file>    The output file (use '-' for STDOUT, defaults to <file>)
-  -?, -h, --help         Show help and usage information
+dotnet json remove <file> <key> [-o|--output <output file>]
 ```
 
-#### get
+**Arguments:**
+- _\<file>_ The file to read the JSON from and write the result to unless `-o` is given.
+- _\<key>_ The key to remove from the read JSON
+
+**Options:**
+- _-o|--output file_ Write the result to a custom output file instead of using the input file
+
+### get
 
 Reads the json file and returns the value for the given key.
 
+**Usage:**
 ```
-get:
-  Read a value from a JSON file.
-
-Usage:
-  dotnet-json get [options] <file> <key>
-
-Arguments:
-  <file>    The JSON file (use '-' for STDIN)
-  <key>     The key to get (use ':' to get a nested object and use index numbers to get array values eg. nested:key or nested:1:key)
-
-Options:
-  -e, --exact       only return exact value matches, this will return an error for references to nested objects/arrays.
-  -?, -h, --help    Show help and usage information
+dotnet json get <file> <key> [-e|--exact]
 ```
+
+**Arguments:**
+- _\<file>_ The file to read the JSON from.
+- _\<key>_ The key to output
+
+**Options:**
+- _-e|--exact_ only return an exact value, this will return an error if the key references an object or array.
