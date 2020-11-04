@@ -86,6 +86,24 @@ namespace dotnet_json.Tests
         }
 
         [Fact]
+        public void FindValue_ReturnsNullIfKeyDoesNotExist()
+        {
+            var document = new JsonDocument(JObject.Parse(@"{ ""key"": ""value"" }"));
+            var actual = document.FindToken("notkey");
+
+            actual.Should().BeNull();
+        }
+
+        [Fact]
+        public void FindValue_ReturnsNullIfKeyDoesNotExist_ButSubkeyExists()
+        {
+            var document = new JsonDocument(JObject.Parse(@"{ ""key"": ""value"" }"));
+            var actual = document.FindToken("key:nested");
+
+            actual.Should().BeNull();
+        }
+
+        [Fact]
         public void SetValue_ModifiesOriginalDocument_Object()
         {
             var document = new JsonDocument(JObject.Parse(@"{ ""key"": ""value"", ""nested"": { ""another"": ""value"" } }"));
@@ -145,6 +163,63 @@ namespace dotnet_json.Tests
 
             document._json[2][0].Should().BeOfType<JValue>()
                 .Which.Value.Should().Be("value");;
+        }
+
+        [Fact]
+        public void SetValue_ReplacesValue_WithArray()
+        {
+            var document = new JsonDocument(JObject.Parse(@"{ ""key"": ""value"" }"));
+
+            document.SetValue("key:0", "array");
+
+            document._json.Should().BeOfType<JObject>()
+                .Which.Should().ContainKey("key");
+
+            document._json["key"].Should().BeOfType<JArray>()
+                .Which.Should().HaveCount(1);
+
+            document._json["key"][0].Should().BeOfType<JValue>()
+                .Which.Value.Should().Be("array");
+        }
+
+        [Fact]
+        public void SetValue_ReplacesValue_WithObject()
+        {
+            var document = new JsonDocument(JObject.Parse(@"{ ""key"": ""value"" }"));
+
+            document.SetValue("key:nested", "object");
+
+            document._json.Should().BeOfType<JObject>()
+                .Which.Should().ContainKey("key");
+
+            document._json["key"].Should().BeOfType<JObject>()
+                .Which.Should().ContainKey("nested");
+
+            document._json["key"]["nested"].Should().BeOfType<JValue>()
+                .Which.Value.Should().Be("object");
+        }
+
+        [Fact]
+        public void Merge_MergesTwoDocuments()
+        {
+            var document1 = new JsonDocument(JObject.Parse(@"{ ""key1"": ""value1"" }"));
+            var document2 = new JsonDocument(JObject.Parse(@"{ ""key2"": ""value2"" }"));
+
+            document1.Merge(document2);
+
+            document1._json.Should().BeOfType<JObject>()
+                .Which.Should().ContainKeys("key1", "key1");
+
+            document1._json["key1"].Should().BeOfType<JValue>()
+                .Which.Value.Should().Be("value1");
+            document1._json["key2"].Should().BeOfType<JValue>()
+                .Which.Value.Should().Be("value2");
+        }
+
+        [Fact(Skip = "not yet implemented")]
+        public void Merge_ReplacesWholeArray()
+        {
+            // TODO: Make sure Merge replaces an array instead of only update array indices.
         }
 
         [Fact]

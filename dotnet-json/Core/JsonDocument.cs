@@ -109,8 +109,8 @@ namespace dotnet_json.Core
                 var subkey = subKeys[i];
                 var isLastKey = i == subKeys.Length - 1;
 
-                if (current is JValue jValue && (!createNew || jValue.Value == null))
-                    throw new ArgumentException("");
+                if (current is JValue && !createNew)
+                    return null;
 
                 if (int.TryParse(subkey, out _) && current is JObject && ((JObject)current).Count == 0 && current.Parent != null)
                 {
@@ -126,10 +126,13 @@ namespace dotnet_json.Core
                     continue;
                 }
 
+                if (current is JValue)
+                    return null;
+
                 var jObject = (JObject)current!; // At this point current can only be a JObject.
                 current = jObject[subkey];
 
-                if (current == null && createNew)
+                if (createNew && (current is null || (current is JValue && !isLastKey)))
                 {
                     current = jObject[subkey] = isLastKey ? (JToken)new JValue((object?)null) : new JObject();
                 }
