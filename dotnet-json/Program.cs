@@ -20,6 +20,7 @@ namespace dotnet_json
             root.AddCommand(new SetCommand());
             root.AddCommand(new RemoveCommand());
             root.AddCommand(new GetCommand());
+            root.AddCommand(new IndentCommand());
 
             return root;
         }

@@ -21,7 +21,7 @@ dotnet tool install -g dotnet-json
 
 When you installed dotnet-json as a .NET Core global tool, you can run it as either `dotnet json` or `dotnet-json`.
 
-dotnet-json has 4 sub-commands, `merge`, `set`, `remove` and `get`.
+dotnet-json has 5 sub-commands, `merge`, `set`, `remove`, `get` and `indent`.
 
 ### Merge
 
@@ -88,3 +88,18 @@ dotnet json get <file> <key> [-e|--exact]
 
 **Options:**
 - _-e|--exact_ only return an exact value, this will return an error if the key references an object or array.
+
+### indent
+
+Reads the json file and writes it out with indentation.
+
+**Usage:**
+```
+dotnet json indent <file> [-o|--output <output file>]
+```
+
+**Arguments:**
+- _\<file>_ The file to read the JSON from and write the result to unless `-o` is given.
+
+**Options:**
+- _-o|--output file_ Write the result to a custom output file instead of writing back to the input file
