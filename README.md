@@ -17,6 +17,11 @@ To install dotnet-json as a global tool, run the following command:
 dotnet tool install -g dotnet-json
 ```
 
+Or, if you already have `dotnet-json` installed and want to update it to the latest version, run the following command:
+```
+dotnet tool update -g dotnet-json
+```
+
 ## Usage
 
 When you installed dotnet-json as a .NET Core global tool, you can run it as either `dotnet json` or `dotnet-json`.
