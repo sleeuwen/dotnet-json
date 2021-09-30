@@ -24,11 +24,16 @@
     <PackageDescription>.NET Core global tool for manipulation JSON files.</PackageDescription>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Title>dotnet-json</Title>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.20574.7" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
 </Project>
