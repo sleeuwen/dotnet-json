@@ -73,11 +73,10 @@ namespace dotnet_json.Tests
 
             var console = new TestConsole();
 
-            command.Handler = CommandHandler.Create((string file) =>
+            command.SetHandler((string file) =>
             {
                 console.Out.Write("Success " + file);
-                return 0;
-            });
+            }, file);
 
             var exitCode = await command.InvokeAsync(filename, console);
             return (exitCode, console);

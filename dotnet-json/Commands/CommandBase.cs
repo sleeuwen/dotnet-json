@@ -40,7 +40,7 @@ namespace dotnet_json.Commands
 
         protected Stream GetInputStream()
         {
-            var filename = Context?.ParseResult.ValueForArgument(InputFile) ?? throw new Exception("GetInputStream must be called from a command handler");
+            var filename = Context?.ParseResult.GetValueForArgument(InputFile) ?? throw new Exception("GetInputStream must be called from a command handler");
 
             return filename switch
             {
@@ -52,8 +52,8 @@ namespace dotnet_json.Commands
         protected Stream GetOutputStream()
         {
             var filename = Context?.ParseResult.HasOption(OutputFile) ?? throw new Exception("GetOutputStream() must be called from a command handler")
-                ? Context.ParseResult.ValueForOption(OutputFile)
-                : Context.ParseResult.ValueForArgument(InputFile);
+                ? Context.ParseResult.GetValueForOption(OutputFile)
+                : Context.ParseResult.GetValueForArgument(InputFile);
 
             return filename switch
             {
@@ -73,13 +73,13 @@ namespace dotnet_json.Commands
         protected T GetParameterValue<T>(Argument<T> argument)
         {
             return (Context ?? throw new Exception("GetParameterValue() must be called from a command handler"))
-                .ParseResult.ValueForArgument(argument);
+                .ParseResult.GetValueForArgument(argument);
         }
 
         protected List<T>? GetMultiParameterValue<T>(Argument<T> argument)
         {
             return (Context ?? throw new Exception("GetMultiParameterValue() must be called from a command handler"))
-                .ParseResult.ValueForArgument<List<T>>(argument);
+                .ParseResult.GetValueForArgument<List<T>>(argument);
         }
 
         protected abstract Task<int> ExecuteAsync();

@@ -36,7 +36,7 @@ namespace dotnet_json.Commands
                 return 1;
             }
 
-            if (Context!.ParseResult.ValueForOption(Exact) && !(result is JValue))
+            if (Context!.ParseResult.GetValueForOption(Exact) && !(result is JValue))
             {
                 Context!.Console.Error.WriteLine($"Value for key '{key}' is a complex object.");
                 return 1;

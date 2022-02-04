@@ -112,9 +112,9 @@ namespace dotnet_json.Tests
 
             document._json.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("nested")
-                .WhichValue.Should().BeOfType<JObject>()
+                .WhoseValue.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("another")
-                .WhichValue.Should().BeOfType<JValue>()
+                .WhoseValue.Should().BeOfType<JValue>()
                 .Which.Value.Should().Be("something else");
         }
 
@@ -127,9 +127,9 @@ namespace dotnet_json.Tests
 
             document._json.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("nested")
-                .WhichValue.Should().BeOfType<JObject>()
+                .WhoseValue.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("another")
-                .WhichValue.Should().BeOfType<JValue>()
+                .WhoseValue.Should().BeOfType<JValue>()
                 .Which.Value.Should().Be("something else");
         }
 
@@ -235,7 +235,7 @@ namespace dotnet_json.Tests
                 .Which.Should().ContainSingle()
                 .Which.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("nested")
-                .WhichValue.Should().BeOfType<JValue>()
+                .WhoseValue.Should().BeOfType<JValue>()
                 .Which.Value.Should().Be("value");
         }
 
@@ -248,7 +248,7 @@ namespace dotnet_json.Tests
 
             document._json.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("nested")
-                .WhichValue.Should().BeOfType<JObject>()
+                .WhoseValue.Should().BeOfType<JObject>()
                 .Which.Should().NotContainKey("another")
                 .And.ContainKey("extra");
         }
@@ -262,7 +262,7 @@ namespace dotnet_json.Tests
 
             document._json.Should().BeOfType<JObject>()
                 .Which.Should().ContainKey("nested")
-                .WhichValue.Should().BeOfType<JArray>()
+                .WhoseValue.Should().BeOfType<JArray>()
                 .Which.Should().BeEmpty();
         }
 
