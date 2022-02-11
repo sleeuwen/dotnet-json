@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -53,23 +54,34 @@ namespace dotnet_json.Core
                 jValue?.Remove();
         }
 
-        internal static IEnumerable<KeyValuePair<string, JValue>> AllValues(JToken token, string prefix = "")
+        internal static IEnumerable<KeyValuePair<string, JValue>> AllValues(JToken token)
         {
+            return AllTokens(token)
+                .Where(kv => kv.Value is JValue)
+                .Select(kv => KeyValuePair.Create(kv.Key, (kv.Value as JValue)!));
+        }
+
+        internal static IEnumerable<KeyValuePair<string, JToken>> AllTokens(JToken token, string prefix = "")
+        {
+            yield return KeyValuePair.Create(prefix, token);
+
             switch (token)
             {
-                case JValue jValue:
-                    yield return KeyValuePair.Create(prefix, jValue);
+                case JValue:
                     break;
 
                 case JProperty jProperty:
-                    foreach (var kv in AllValues(jProperty.Value, CreatePrefix(prefix, jProperty.Name)))
+                    foreach (var kv in AllTokens(jProperty.Value, CreatePrefix(prefix, jProperty.Name)))
                         yield return kv;
                     break;
 
                 case JArray jArray:
                     for (var i = 0; i < jArray.Count; i++)
-                        foreach (var kv in AllValues(jArray[i], CreatePrefix(prefix, i.ToString())))
+                    {
+                        foreach (var kv in AllTokens(jArray[i], CreatePrefix(prefix, i.ToString())))
                             yield return kv;
+                    }
+
                     break;
 
                 case JObject jObject:
@@ -78,7 +90,7 @@ namespace dotnet_json.Core
                         if (value == null)
                             continue;
 
-                        foreach (var kv in AllValues(value, CreatePrefix(prefix, key)))
+                        foreach (var kv in AllTokens(value, CreatePrefix(prefix, key)))
                             yield return kv;
                     }
 
@@ -101,62 +113,69 @@ namespace dotnet_json.Core
 
         internal JToken? FindToken(string key, bool createNew = false)
         {
-            var subKeys = string.IsNullOrWhiteSpace(key) ? new string[0] : key.Split(':');
+            var parentKey = "";
+            var bestParent = (JToken?)(_json as JObject) ?? (_json as JArray);
 
-            var current = _json;
-            for (var i = 0; i < subKeys.Length; i++)
+            foreach (var kv in AllTokens(_json))
             {
-                var subkey = subKeys[i];
-                var isLastKey = i == subKeys.Length - 1;
+                if (kv.Key == key)
+                    return kv.Value;
 
-                if (current is JValue && !createNew)
-                    return null;
-
-                if (int.TryParse(subkey, out _) && current is JObject && ((JObject)current).Count == 0 && current.Parent != null)
+                if (key.StartsWith(kv.Key) && kv.Value is JObject jObject && kv.Key.Length > parentKey.Length)
                 {
-                    if (current.Parent is JProperty jProperty)
-                        jProperty.Value = current = new JArray();
-                    else if (current.Parent is JArray parentArray)
-                        parentArray[parentArray.IndexOf(current)] = current = new JArray();
-                }
-
-                if (current is JArray jArray)
-                {
-                    current = FindTokenInArray(jArray, subkey, createNew, isLastKey);
-                    continue;
-                }
-
-                if (current is JValue)
-                    return null;
-
-                var jObject = (JObject)current!; // At this point current can only be a JObject.
-                current = jObject[subkey];
-
-                if (createNew && (current is null || (current is JValue && !isLastKey)))
-                {
-                    current = jObject[subkey] = isLastKey ? (JToken)new JValue((object?)null) : new JObject();
+                    parentKey = kv.Key;
+                    bestParent = jObject;
                 }
             }
 
-            return current; // If current is no JValue here, throw an exception
-        }
+            if (bestParent == null || !createNew)
+                return null;
 
-        internal static JToken FindTokenInArray(JArray jArray, string subkey, bool createNew, bool isLastKey)
-        {
-            if (!int.TryParse(subkey, out var index))
-                throw new Exception($"Cannot index into array at {GetPosition(jArray)} with index {subkey}.");
-
-            if (createNew && index >= jArray.Count)
+            var restKeys = key.Substring(parentKey.Length).TrimStart(':').Split(':');
+            for (var i = 0; i < restKeys.Length - 1; i++)
             {
-                for (var j = jArray.Count; j < index; j++)
-                    jArray.Add(new JValue((object?)null));
-                jArray.Add(isLastKey ? (JToken)new JValue((object?)null) : new JObject());
+                JToken newValue;
+
+                if (restKeys.Length > i + 1 && int.TryParse(restKeys[i + 1], out _))
+                    newValue = new JArray();
+                else
+                    newValue = new JObject();
+
+                if (bestParent is JArray jArray)
+                {
+                    if (!int.TryParse(restKeys[i], out var idx))
+                        throw new Exception($"Cannot index into array with key '{restKeys[^1]}'");
+
+                    while (jArray.Count <= idx)
+                        jArray.Add(new JValue((object?)null));
+                    jArray[idx] = newValue;
+                }
+                else
+                {
+                    bestParent[restKeys[i]] = newValue;
+                }
+
+                bestParent = newValue;
             }
 
-            if (index >= jArray.Count)
-                throw new IndexOutOfRangeException($"Index {index} does not exist for array at {GetPosition(jArray)}");
+            var value = (JToken)new JValue((object?)null);
 
-            return jArray[index];
+            if (bestParent is JArray array)
+            {
+                if (!int.TryParse(restKeys[^1], out var idx))
+                    throw new Exception($"Cannot index into array with key '{restKeys[^1]}'");
+
+                while (array.Count <= idx)
+                    array.Add(new JValue((object?)null));
+                array[idx] = value;
+                value = array[idx];
+            }
+            else
+            {
+                bestParent[restKeys[^1]] = value;
+            }
+
+            return value;
         }
 
         internal void SetValue(string key, object? value)
@@ -168,8 +187,5 @@ namespace dotnet_json.Core
 
             jValue.Value = value;
         }
-
-        internal static string GetPosition(JToken token)
-            => token.Path.Replace(".", ":").Replace("[", ".").Replace("]", "");
     }
 }

@@ -55,6 +55,132 @@ namespace dotnet_json.Tests.Commands
 }");
         }
 
+        [Fact]
+        public async Task CorrectlyMergesKeysWithColons()
+        {
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
+    ""Parent:Child"": ""value""
+}");
+
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
+    ""Parent:Child"": ""other""
+}");
+
+            var (exitCode, console) = await RunCommand(
+                Path.Join(_tmpDir, "a.json"),
+                Path.Join(_tmpDir, "b.json"));
+
+            exitCode.Should().Be(0);
+
+            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
+            content.Should().Be(@"{
+  ""Parent:Child"": ""other""
+}");
+        }
+
+        [Fact]
+        public async Task KeepsTheFormattingPerKey()
+        {
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
+    ""Parent:Child"": ""value""
+}");
+
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
+    ""Parent"": {
+        ""Child"": ""other""
+    }
+}");
+
+            var (exitCode, console) = await RunCommand(
+                Path.Join(_tmpDir, "a.json"),
+                Path.Join(_tmpDir, "b.json"));
+
+            exitCode.Should().Be(0);
+
+            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
+            content.Should().Be(@"{
+  ""Parent:Child"": ""other""
+}");
+        }
+
+        [Fact]
+        public async Task AddsKeyInObject()
+        {
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
+    ""Parent"": {
+        ""Other"": ""value""
+    },
+    ""Parent:Another"": ""value""
+}");
+
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
+    ""Parent"": {
+        ""Child"": ""other""
+    }
+}");
+
+            var (exitCode, console) = await RunCommand(
+                Path.Join(_tmpDir, "a.json"),
+                Path.Join(_tmpDir, "b.json"));
+
+            exitCode.Should().Be(0);
+
+            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
+            content.Should().Be(@"{
+  ""Parent"": {
+    ""Other"": ""value"",
+    ""Child"": ""other""
+  },
+  ""Parent:Another"": ""value""
+}");
+        }
+
+        [Fact]
+        public async Task AddsKeyInMostSpecificObject()
+        {
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
+    ""Parent:Nested"": {
+        ""Key"": ""value""
+    },
+    ""Parent"": {
+        ""Nested"": {
+            ""Another"": ""value""
+        }
+    }
+}");
+
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
+    ""Parent"": {
+        ""Nested"": {
+            ""Child"": ""other""
+        },
+        ""Another:Child"": ""value""
+    }
+}");
+
+            var (exitCode, console) = await RunCommand(
+                Path.Join(_tmpDir, "a.json"),
+                Path.Join(_tmpDir, "b.json"));
+
+            exitCode.Should().Be(0);
+
+            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
+            content.Should().Be(@"{
+  ""Parent:Nested"": {
+    ""Key"": ""value"",
+    ""Child"": ""other""
+  },
+  ""Parent"": {
+    ""Nested"": {
+      ""Another"": ""value""
+    },
+    ""Another"": {
+      ""Child"": ""value""
+    }
+  }
+}");
+        }
+
         private async Task<(int exitCode, IConsole console)> RunCommand(params string[] args)
         {
             var command = new MergeCommand();
