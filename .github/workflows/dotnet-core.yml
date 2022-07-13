@@ -15,7 +15,7 @@ jobs:
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100
+        dotnet-version: 6.0.x
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -25,7 +25,7 @@ jobs:
     - name: Publish NuGet
       id: publish_nuget
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: brandedoutcast/publish-nuget@v2.5.5
+      uses: alirezanet/publish-nuget@v3.0.4
       with:
         PROJECT_FILE_PATH: dotnet-json/dotnet-json.csproj
         PACKAGE_NAME: dotnet-json
