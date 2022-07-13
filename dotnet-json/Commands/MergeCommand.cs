@@ -8,7 +8,7 @@ namespace dotnet_json.Commands
 {
     public class MergeCommand : CommandBase
     {
-        private FileArgument Files = new FileArgument("files", "The names of the files to merge with the first file.") { Arity = ArgumentArity.OneOrMore };
+        private FilesArgument Files = new FilesArgument("files", "The names of the files to merge with the first file.") { Arity = ArgumentArity.OneOrMore };
 
         public MergeCommand() : base("merge", "merge two or more json files into one")
         {
@@ -19,7 +19,7 @@ namespace dotnet_json.Commands
 
         protected override async Task<int> ExecuteAsync()
         {
-            var files = GetMultiParameterValue(Files) ?? throw new ArgumentException("Missing argument <files>");
+            var files = GetParameterValue(Files) ?? throw new ArgumentException("Missing argument <files>");
 
             JsonDocument document;
 

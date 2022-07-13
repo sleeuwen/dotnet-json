@@ -31,6 +31,11 @@ namespace dotnet_json.Commands
             Handler = this;
         }
 
+        public int Invoke(InvocationContext context)
+        {
+            return InvokeAsync(context).GetAwaiter().GetResult();
+        }
+
         public Task<int> InvokeAsync(InvocationContext context)
         {
             Context = context;
@@ -74,12 +79,6 @@ namespace dotnet_json.Commands
         {
             return (Context ?? throw new Exception("GetParameterValue() must be called from a command handler"))
                 .ParseResult.GetValueForArgument(argument);
-        }
-
-        protected List<T>? GetMultiParameterValue<T>(Argument<T> argument)
-        {
-            return (Context ?? throw new Exception("GetMultiParameterValue() must be called from a command handler"))
-                .ParseResult.GetValueForArgument<List<T>>(argument);
         }
 
         protected abstract Task<int> ExecuteAsync();

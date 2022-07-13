@@ -200,6 +200,22 @@ namespace dotnet_json.Tests
         }
 
         [Fact]
+        public void SetValue_ReplacesValue_WithEmptyString()
+        {
+            var document = new JsonDocument(JObject.Parse(@"{ ""key"": ""value"" }"));
+
+            document.SetValue("key", "");
+
+            document._json.Should().BeOfType<JObject>()
+                .Which.Should().ContainKey("key");
+
+            var value = document._json["key"].Should().BeOfType<JValue>().Subject;
+
+            value.Type.Should().Be(JTokenType.String);
+            value.Value.Should().Be("");
+        }
+
+        [Fact]
         public void Merge_MergesTwoDocuments()
         {
             var document1 = new JsonDocument(JObject.Parse(@"{ ""key1"": ""value1"" }"));
