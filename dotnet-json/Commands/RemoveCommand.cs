@@ -13,6 +13,11 @@ namespace dotnet_json.Commands
         public RemoveCommand()
             : base("remove", "Remove a value from the json")
         {
+            Key.AddValidator(symbol =>
+            {
+                if (symbol.Tokens.Count == 1 && string.IsNullOrEmpty(symbol.Tokens[0].Value))
+                    symbol.ErrorMessage = "Removing an empty key is not allowed.";
+            });
             AddArgument(Key);
 
             AddAlias("rm");
