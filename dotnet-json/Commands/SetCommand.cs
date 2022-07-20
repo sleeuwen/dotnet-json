@@ -12,10 +12,14 @@ namespace dotnet_json.Commands
 
         private Argument<string> Value = new Argument<string>("value", "The value to set") { Arity = ArgumentArity.ExactlyOne };
 
+        private Option<bool> Existing = new Option<bool>(new[] { "-e", "--existing" }, "Only set the value if the key already exists in the json file, otherwise do nothing");
+
         public SetCommand() : base("set", "set a value in a json file")
         {
             AddArgument(Key);
             AddArgument(Value);
+            AddOption(Existing);
+            AddOption(Compressed);
 
             Handler = this;
         }
@@ -24,11 +28,15 @@ namespace dotnet_json.Commands
         {
             var key = GetParameterValue(Key) ?? throw new ArgumentException("Missing argument <key>");
             var value = GetParameterValue(Value) ?? throw new ArgumentException("Missing argument <value>");
+            var existing = Context!.ParseResult.GetValueForOption(Existing);
 
             JsonDocument document;
 
             await using (var inputStream = GetInputStream())
                 document = JsonDocument.ReadFromStream(inputStream);
+
+            if (existing && document[key] == null)
+                return 0;
 
             document[key] = value;
 

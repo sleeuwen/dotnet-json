@@ -13,6 +13,7 @@ namespace dotnet_json.Commands
         public MergeCommand() : base("merge", "merge two or more json files into one")
         {
             AddArgument(Files);
+            AddOption(Compressed);
 
             Handler = this;
         }

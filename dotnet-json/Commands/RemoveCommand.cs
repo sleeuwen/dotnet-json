@@ -22,6 +22,8 @@ namespace dotnet_json.Commands
 
             AddAlias("rm");
 
+            AddOption(Compressed);
+
             Handler = this;
         }
 

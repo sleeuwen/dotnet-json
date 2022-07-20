@@ -61,6 +61,7 @@ dotnet json set <file> <key> <value> [-o|--output <output file>]
 
 **Options:**
 - _-o|--output file_ Write the result to a custom output file instead of using the input file
+- _-e|--existing_ Only set the value if the key already exists in the json file, otherwise do nothing
 
 ### remove
 

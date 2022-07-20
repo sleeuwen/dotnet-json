@@ -43,6 +43,36 @@ namespace dotnet_json.Tests.Commands
             result.Should().Be(value);
         }
 
+        [Fact]
+        public async Task Existing_DoesNotChangeFileIfKeyDoesNotExist()
+        {
+            var json = @"{""key1"":""value""}";
+            var filename = Path.Join(_tmpDir, "test.json");
+            await File.WriteAllTextAsync(filename, json);
+
+            var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
+
+            exitCode.Should().Be(0);
+
+            var contents = await File.ReadAllTextAsync(filename);
+            contents.Should().Be(json);
+        }
+
+        [Fact]
+        public async Task Existing_UpdatesValueIfKeyDoesExist()
+        {
+            var json = @"{""key1"":""value"",""key2"":""value""}";
+            var filename = Path.Join(_tmpDir, "test.json");
+            await File.WriteAllTextAsync(filename, json);
+
+            var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
+
+            exitCode.Should().Be(0);
+
+            var contents = await File.ReadAllTextAsync(filename);
+            contents.Should().Be(@"{""key1"":""value"",""key2"":""newvalue""}");
+        }
+
         private async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
         {
             var command = new SetCommand();
