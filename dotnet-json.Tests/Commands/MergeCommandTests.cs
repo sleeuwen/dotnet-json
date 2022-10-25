@@ -181,6 +181,68 @@ namespace dotnet_json.Tests.Commands
 }");
         }
 
+        [Fact]
+        public async Task MergeWithArraysWorkCorrectly()
+        {
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
+  ""Array"": [
+    ""item 1"",
+    ""item 2""
+  ]
+}");
+
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
+  ""Array"": [
+    ""1 item"",
+    null,
+    ""3 item""
+  ]
+}");
+
+            var (exitCode, console) = await RunCommand(
+                Path.Join(_tmpDir, "a.json"),
+                Path.Join(_tmpDir, "b.json"));
+
+            exitCode.Should().Be(0);
+
+            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
+            content.Should().Be(@"{
+  ""Array"": [
+    ""1 item"",
+    null,
+    ""3 item""
+  ]
+}");
+        }
+
+        [Fact]
+        public async Task MergeWithNewArrayWorkCorrectly()
+        {
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
+}");
+
+            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
+  ""Array"": [
+    ""item 1"",
+    ""item 2""
+  ]
+}");
+
+            var (exitCode, console) = await RunCommand(
+                Path.Join(_tmpDir, "a.json"),
+                Path.Join(_tmpDir, "b.json"));
+
+            exitCode.Should().Be(0);
+
+            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
+            content.Should().Be(@"{
+  ""Array"": [
+    ""item 1"",
+    ""item 2""
+  ]
+}");
+        }
+
         private async Task<(int exitCode, IConsole console)> RunCommand(params string[] args)
         {
             var command = new MergeCommand();

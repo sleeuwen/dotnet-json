@@ -121,10 +121,10 @@ namespace dotnet_json.Core
                 if (kv.Key == key)
                     return kv.Value;
 
-                if (key.StartsWith(kv.Key) && kv.Value is JObject jObject && kv.Key.Length > parentKey.Length)
+                if (key.StartsWith(kv.Key) && kv.Key.Length > parentKey.Length && (kv.Value is JObject or JArray))
                 {
                     parentKey = kv.Key;
-                    bestParent = jObject;
+                    bestParent = kv.Value;
                 }
             }
 
