@@ -55,6 +55,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload osx release asset
       if: success() && steps.publish_nuget.outputs.version != ''
-      run: gh release upload ${{ steps.publish_nuget.outputs.version }} ./output/osx/dotnet-json.exe#dotnet-json-osx
+      run: gh release upload ${{ steps.publish_nuget.outputs.version }} ./output/osx/dotnet-json#dotnet-json-osx
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
