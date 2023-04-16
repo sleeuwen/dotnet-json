@@ -16,11 +16,11 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 6.0.x
-    - name: Install dependencies
+    - name: dotnet restore
       run: dotnet restore
-    - name: Build
+    - name: dotnet build
       run: dotnet build --configuration Release --no-restore
-    - name: Test
+    - name: dotnet test
       run: dotnet test --no-restore --verbosity normal
     - name: Publish NuGet
       id: publish_nuget
@@ -41,20 +41,13 @@ jobs:
       if: success() && steps.publish_nuget.outputs.version != ''
       run: |
         dotnet publish -c Release -o ./output/win --self-contained true -r win-x86 -p:PublishSingleFile=true -p:PublishTrimmed=true
+        mv ./output/win/dotnet-json.exe ./output/dotnet-json.exe
         dotnet publish -c Release -o ./output/linux --self-contained true -r linux-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true
+        mv ./output/linux/dotnet-json ./output/dotnet-json-linux
         dotnet publish -c Release -o ./output/osx --self-contained true -r osx-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true
-    - name: Upload windows release asset
+        mv ./output/osx/dotnet-json ./output/dotnet-json-osx
+    - name: Upload release assets
       if: success() && steps.publish_nuget.outputs.version != ''
-      run: gh release upload ${{ steps.publish_nuget.outputs.version }} ./output/win/dotnet-json.exe#dotnet-json.exe
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Upload linux release asset
-      if: success() && steps.publish_nuget.outputs.version != ''
-      run: gh release upload ${{ steps.publish_nuget.outputs.version }} ./output/linux/dotnet-json#dotnet-json-linux
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Upload osx release asset
-      if: success() && steps.publish_nuget.outputs.version != ''
-      run: gh release upload ${{ steps.publish_nuget.outputs.version }} ./output/osx/dotnet-json#dotnet-json-osx
+      run: gh release upload ${{ steps.publish_nuget.outputs.version }} ./output/dotnet-json.exe ./output/dotnet-json-linux ./output/dotnet-json-osx
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
