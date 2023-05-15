@@ -25,7 +25,7 @@ jobs:
     - name: Publish NuGet
       id: publish_nuget
       if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
-      uses: alirezanet/publish-nuget@v3.0.5
+      uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: dotnet-json/dotnet-json.csproj
         PACKAGE_NAME: dotnet-json
