@@ -1,36 +1,41 @@
-name: .NET Core
+name: Release
 
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: 10.0.x
     - name: dotnet restore
       run: dotnet restore
     - name: dotnet build
       run: dotnet build --configuration Release --no-restore
     - name: dotnet test
       run: dotnet test --no-restore --verbosity normal
+    - name: NuGet Login
+      uses: NuGet/login@v1
+      id: login
+      with:
+        user: sleeuwen
     - name: Publish NuGet
       id: publish_nuget
-      if: success() && github.event_name == 'push' && github.ref == 'refs/heads/master'
       uses: alirezanet/publish-nuget@v3.1.0
       with:
         PROJECT_FILE_PATH: dotnet-json/dotnet-json.csproj
         PACKAGE_NAME: dotnet-json
       env:
-        NUGET_KEY: ${{ secrets.NUGET_KEY }}
+        NUGET_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
     - name: Create release
       id: create_release
       if: success() && steps.publish_nuget.outputs.version != ''

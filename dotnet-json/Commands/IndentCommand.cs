@@ -1,25 +1,24 @@
-using System.Threading.Tasks;
+using System.CommandLine;
 using dotnet_json.Core;
 
-namespace dotnet_json.Commands
+namespace dotnet_json.Commands;
+
+public class IndentCommand : CommandBase
 {
-    public class IndentCommand : CommandBase
+    public IndentCommand() : base("indent", "read a json file and write it out with correct indentation")
     {
-        public IndentCommand() : base("indent", "read a json file and write it out with correct indentation")
-        {
-        }
+    }
 
-        protected override async Task<int> ExecuteAsync()
-        {
-            JsonDocument document;
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        JsonDocument document;
 
-            await using (var inputStream = GetInputStream())
-                document = JsonDocument.ReadFromStream(inputStream);
+        await using (var inputStream = GetInputStream(parseResult))
+            document = JsonDocument.ReadFromStream(inputStream);
 
-            await using (var outputStream = GetOutputStream())
-                document.WriteToStream(outputStream);
+        await using (var outputStream = GetOutputStream(parseResult))
+            document.WriteToStream(outputStream);
 
-            return 0;
-        }
+        return 0;
     }
 }

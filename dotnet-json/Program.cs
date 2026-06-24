@@ -1,28 +1,26 @@
 ﻿using System.CommandLine;
-using System.Threading.Tasks;
 using dotnet_json.Commands;
 
-namespace dotnet_json
+namespace dotnet_json;
+
+public class Program
 {
-    public class Program
+    public static async Task<int> Main(string[] args)
     {
-        public static async Task<int> Main(string[] args)
-        {
-            var command = CreateRootCommand();
-            return await command.InvokeAsync(args);
-        }
+        var command = CreateRootCommand();
+        return await command.Parse(args).InvokeAsync(new InvocationConfiguration(), CancellationToken.None);
+    }
 
-        internal static RootCommand CreateRootCommand()
-        {
-            var root = new RootCommand("JSON .NET Global Tool");
+    internal static RootCommand CreateRootCommand()
+    {
+        var root = new RootCommand("JSON .NET Global Tool");
 
-            root.AddCommand(new MergeCommand());
-            root.AddCommand(new SetCommand());
-            root.AddCommand(new RemoveCommand());
-            root.AddCommand(new GetCommand());
-            root.AddCommand(new IndentCommand());
+        root.Subcommands.Add(new MergeCommand());
+        root.Subcommands.Add(new SetCommand());
+        root.Subcommands.Add(new RemoveCommand());
+        root.Subcommands.Add(new GetCommand());
+        root.Subcommands.Add(new IndentCommand());
 
-            return root;
-        }
+        return root;
     }
 }
