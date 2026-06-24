@@ -1,87 +1,81 @@
-using System;
 using System.CommandLine;
 using System.CommandLine.IO;
-using System.IO;
-using System.Threading.Tasks;
 using dotnet_json.Commands;
-using FluentAssertions;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Xunit;
 
-namespace dotnet_json.Tests.Commands
+namespace dotnet_json.Tests.Commands;
+
+public sealed class SetCommandTests : IDisposable
 {
-    public class SetCommandTests : IDisposable
+    private readonly string _tmpDir;
+
+    public SetCommandTests()
     {
-        private readonly string _tmpDir;
+        _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(_tmpDir);
+    }
 
-        public SetCommandTests()
-        {
-            _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(_tmpDir);
-        }
+    public void Dispose()
+    {
+        Directory.Delete(_tmpDir, true);
+    }
 
-        public void Dispose()
-        {
-            Directory.Delete(_tmpDir, true);
-        }
+    [Theory]
+    [InlineData("""{"key": "value"}""", "key", "test")]
+    [InlineData("""{"key": "value"}""", "key", "")]
+    public async Task SavesNewValueToFile(string json, string key, string value)
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "test.json"), json, TestContext.Current.CancellationToken);
 
-        [Theory]
-        [InlineData(@"{""key"": ""value""}", "key", "test")]
-        [InlineData(@"{""key"": ""value""}", "key", "")]
-        public async Task SavesNewValueToFile(string json, string key, string value)
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "test.json"), json);
+        var (exitCode, _) = await RunCommand(Path.Join(_tmpDir, "test.json"), key, value);
 
-            var (exitCode, _) = await RunCommand(Path.Join(_tmpDir, "test.json"), key, value);
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        var contents = await File.ReadAllTextAsync(Path.Join(_tmpDir, "test.json"), TestContext.Current.CancellationToken);
+        var result = JObject.Parse(contents)[key]!.ToString();
 
-            var contents = await File.ReadAllTextAsync(Path.Join(_tmpDir, "test.json"));
-            var result = JObject.Parse(contents)[key].ToString();
+        Assert.Equal(value, result);
+    }
 
-            result.Should().Be(value);
-        }
+    [Fact]
+    public async Task Existing_DoesNotChangeFileIfKeyDoesNotExist()
+    {
+        var json = """{"key1":"value"}""";
+        var filename = Path.Join(_tmpDir, "test.json");
+        await File.WriteAllTextAsync(filename, json, TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task Existing_DoesNotChangeFileIfKeyDoesNotExist()
-        {
-            var json = @"{""key1"":""value""}";
-            var filename = Path.Join(_tmpDir, "test.json");
-            await File.WriteAllTextAsync(filename, json);
+        var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
 
-            var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        var contents = await File.ReadAllTextAsync(filename, TestContext.Current.CancellationToken);
+        Assert.Equal(json, contents);
+    }
 
-            var contents = await File.ReadAllTextAsync(filename);
-            contents.Should().Be(json);
-        }
+    [Fact]
+    public async Task Existing_UpdatesValueIfKeyDoesExist()
+    {
+        var json = """{"key1":"value","key2":"value"}""";
+        var filename = Path.Join(_tmpDir, "test.json");
+        await File.WriteAllTextAsync(filename, json, TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task Existing_UpdatesValueIfKeyDoesExist()
-        {
-            var json = @"{""key1"":""value"",""key2"":""value""}";
-            var filename = Path.Join(_tmpDir, "test.json");
-            await File.WriteAllTextAsync(filename, json);
+        var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
 
-            var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        var contents = await File.ReadAllTextAsync(filename, TestContext.Current.CancellationToken);
+        Assert.Equal("""{"key1":"value","key2":"newvalue"}""", contents);
+    }
 
-            var contents = await File.ReadAllTextAsync(filename);
-            contents.Should().Be(@"{""key1"":""value"",""key2"":""newvalue""}");
-        }
+    private static async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
+    {
+        var command = new SetCommand();
 
-        private async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
-        {
-            var command = new SetCommand();
+        var console = new TestConsole();
 
-            var console = new TestConsole();
+        var exitCode = await command.InvokeAsync(arguments, console);
 
-            var exitCode = await command.InvokeAsync(arguments, console);
-
-            return (exitCode, console);
-        }
+        return (exitCode, console);
     }
 }

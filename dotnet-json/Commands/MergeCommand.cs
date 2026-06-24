@@ -1,51 +1,47 @@
-using System;
 using System.CommandLine;
-using System.IO;
-using System.Threading.Tasks;
 using dotnet_json.Core;
 
-namespace dotnet_json.Commands
+namespace dotnet_json.Commands;
+
+public class MergeCommand : CommandBase
 {
-    public class MergeCommand : CommandBase
+    private FilesArgument Files = new FilesArgument("files", "The names of the files to merge with the first file.") { Arity = ArgumentArity.OneOrMore };
+
+    public MergeCommand() : base("merge", "merge two or more json files into one")
     {
-        private FilesArgument Files = new FilesArgument("files", "The names of the files to merge with the first file.") { Arity = ArgumentArity.OneOrMore };
+        AddArgument(Files);
+        AddOption(Compressed);
 
-        public MergeCommand() : base("merge", "merge two or more json files into one")
-        {
-            AddArgument(Files);
-            AddOption(Compressed);
-
-            Handler = this;
-        }
-
-        protected override async Task<int> ExecuteAsync()
-        {
-            var files = GetParameterValue(Files) ?? throw new ArgumentException("Missing argument <files>");
-
-            JsonDocument document;
-
-            await using (var inputStream = GetInputStream())
-                document = JsonDocument.ReadFromStream(inputStream);
-
-            foreach (var file in files)
-            {
-                await using (var stream = GetStream(file))
-                {
-                    var mergeDocument = JsonDocument.ReadFromStream(stream);
-                    document.Merge(mergeDocument);
-                }
-            }
-
-            await using (var outputStream = GetOutputStream())
-                document.WriteToStream(outputStream, GetFormatting());
-
-            return 0;
-        }
-
-        private static Stream GetStream(string filename) => filename switch
-        {
-            "-" => Console.OpenStandardInput(),
-            _ => File.OpenRead(filename),
-        };
+        Handler = this;
     }
+
+    protected override async Task<int> ExecuteAsync()
+    {
+        var files = GetParameterValue(Files) ?? throw new ArgumentException("Missing argument <files>");
+
+        JsonDocument document;
+
+        await using (var inputStream = GetInputStream())
+            document = JsonDocument.ReadFromStream(inputStream);
+
+        foreach (var file in files)
+        {
+            await using (var stream = GetStream(file))
+            {
+                var mergeDocument = JsonDocument.ReadFromStream(stream);
+                document.Merge(mergeDocument);
+            }
+        }
+
+        await using (var outputStream = GetOutputStream())
+            document.WriteToStream(outputStream, GetFormatting());
+
+        return 0;
+    }
+
+    private static Stream GetStream(string filename) => filename switch
+    {
+        "-" => Console.OpenStandardInput(),
+        _ => File.OpenRead(filename),
+    };
 }

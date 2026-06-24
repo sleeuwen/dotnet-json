@@ -1,257 +1,292 @@
-using System;
 using System.CommandLine;
 using System.CommandLine.IO;
-using System.IO;
-using System.Threading.Tasks;
 using dotnet_json.Commands;
-using FluentAssertions;
 using Xunit;
 
-namespace dotnet_json.Tests.Commands
+namespace dotnet_json.Tests.Commands;
+
+public sealed class MergeCommandTests : IDisposable
 {
-    public class MergeCommandTests : IDisposable
+    private readonly string _tmpDir;
+
+    public MergeCommandTests()
     {
-        private readonly string _tmpDir;
-
-        public MergeCommandTests()
-        {
-            _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(_tmpDir);
-        }
-
-        public void Dispose()
-        {
-            Directory.Delete(_tmpDir, true);
-        }
-
-        [Fact]
-        public async Task DoesNotLeaveTraceOfPreviousJsonInFile()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-  // This file uses comments
-  ""b"": {
-    // To have more lines of JSON
-    // then the resulting file
-    ""key"": ""value""
-  }
-  // So to test that it does not leave behind
-  // data from the previous file and it still
-  // is a valid JSON file after merge
-}");
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{ ""a"": 1 }");
-
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
-
-            exitCode.Should().Be(0);
-
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""b"": {
-    ""key"": ""value""
-  },
-  ""a"": 1
-}");
-        }
-
-        [Fact]
-        public async Task CorrectlyMergesKeysWithColons()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-    ""Parent:Child"": ""value""
-}");
-
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
-    ""Parent:Child"": ""other""
-}");
-
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
-
-            exitCode.Should().Be(0);
-
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""Parent:Child"": ""other""
-}");
-        }
-
-        [Fact]
-        public async Task KeepsTheFormattingPerKey()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-    ""Parent:Child"": ""value""
-}");
-
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
-    ""Parent"": {
-        ""Child"": ""other""
+        _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(_tmpDir);
     }
-}");
 
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
-
-            exitCode.Should().Be(0);
-
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""Parent:Child"": ""other""
-}");
-        }
-
-        [Fact]
-        public async Task AddsKeyInObject()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-    ""Parent"": {
-        ""Other"": ""value""
-    },
-    ""Parent:Another"": ""value""
-}");
-
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
-    ""Parent"": {
-        ""Child"": ""other""
+    public void Dispose()
+    {
+        Directory.Delete(_tmpDir, true);
     }
-}");
 
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
+    [Fact]
+    public async Task DoesNotLeaveTraceOfPreviousJsonInFile()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                     // This file uses comments
+                                                                     "b": {
+                                                                       // To have more lines of JSON
+                                                                       // then the resulting file
+                                                                       "key": "value"
+                                                                     }
+                                                                     // So to test that it does not leave behind
+                                                                     // data from the previous file and it still
+                                                                     // is a valid JSON file after merge
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """{ "a": 1 }""", TestContext.Current.CancellationToken);
 
-            exitCode.Should().Be(0);
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""Parent"": {
-    ""Other"": ""value"",
-    ""Child"": ""other""
-  },
-  ""Parent:Another"": ""value""
-}");
-        }
+        Assert.Equal(0, exitCode);
 
-        [Fact]
-        public async Task AddsKeyInMostSpecificObject()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-    ""Parent:Nested"": {
-        ""Key"": ""value""
-    },
-    ""Parent"": {
-        ""Nested"": {
-            ""Another"": ""value""
-        }
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "b": {
+                         "key": "value"
+                       },
+                       "a": 1
+                     }
+                     """, content);
     }
-}");
 
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
-    ""Parent"": {
-        ""Nested"": {
-            ""Child"": ""other""
-        },
-        ""Another:Child"": ""value""
+    [Fact]
+    public async Task CorrectlyMergesKeysWithColons()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                       "Parent:Child": "value"
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
+
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """
+                                                                   {
+                                                                       "Parent:Child": "other"
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
+
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
+
+        Assert.Equal(0, exitCode);
+
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "Parent:Child": "other"
+                     }
+                     """, content);
     }
-}");
 
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
+    [Fact]
+    public async Task KeepsTheFormattingPerKey()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                       "Parent:Child": "value"
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            exitCode.Should().Be(0);
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """
+                                                                   {
+                                                                       "Parent": {
+                                                                           "Child": "other"
+                                                                       }
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""Parent:Nested"": {
-    ""Key"": ""value"",
-    ""Child"": ""other""
-  },
-  ""Parent"": {
-    ""Nested"": {
-      ""Another"": ""value""
-    },
-    ""Another"": {
-      ""Child"": ""value""
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
+
+        Assert.Equal(0, exitCode);
+
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "Parent:Child": "other"
+                     }
+                     """, content);
     }
-  }
-}");
-        }
 
-        [Fact]
-        public async Task MergeWithArraysWorkCorrectly()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-  ""Array"": [
-    ""item 1"",
-    ""item 2""
-  ]
-}");
+    [Fact]
+    public async Task AddsKeyInObject()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                       "Parent": {
+                                                                           "Other": "value"
+                                                                       },
+                                                                       "Parent:Another": "value"
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
-  ""Array"": [
-    ""1 item"",
-    null,
-    ""3 item""
-  ]
-}");
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """
+                                                                   {
+                                                                       "Parent": {
+                                                                           "Child": "other"
+                                                                       }
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
 
-            exitCode.Should().Be(0);
+        Assert.Equal(0, exitCode);
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""Array"": [
-    ""1 item"",
-    null,
-    ""3 item""
-  ]
-}");
-        }
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "Parent": {
+                         "Other": "value",
+                         "Child": "other"
+                       },
+                       "Parent:Another": "value"
+                     }
+                     """, content);
+    }
 
-        [Fact]
-        public async Task MergeWithNewArrayWorkCorrectly()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{
-}");
+    [Fact]
+    public async Task AddsKeyInMostSpecificObject()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                       "Parent:Nested": {
+                                                                           "Key": "value"
+                                                                       },
+                                                                       "Parent": {
+                                                                           "Nested": {
+                                                                               "Another": "value"
+                                                                           }
+                                                                       }
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{
-  ""Array"": [
-    ""item 1"",
-    ""item 2""
-  ]
-}");
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """
+                                                                   {
+                                                                       "Parent": {
+                                                                           "Nested": {
+                                                                               "Child": "other"
+                                                                           },
+                                                                           "Another:Child": "value"
+                                                                       }
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            var (exitCode, console) = await RunCommand(
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"));
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
 
-            exitCode.Should().Be(0);
+        Assert.Equal(0, exitCode);
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"));
-            content.Should().Be(@"{
-  ""Array"": [
-    ""item 1"",
-    ""item 2""
-  ]
-}");
-        }
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "Parent:Nested": {
+                         "Key": "value",
+                         "Child": "other"
+                       },
+                       "Parent": {
+                         "Nested": {
+                           "Another": "value"
+                         },
+                         "Another": {
+                           "Child": "value"
+                         }
+                       }
+                     }
+                     """, content);
+    }
 
-        private async Task<(int exitCode, IConsole console)> RunCommand(params string[] args)
-        {
-            var command = new MergeCommand();
+    [Fact]
+    public async Task MergeWithArraysWorkCorrectly()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                     "Array": [
+                                                                       "item 1",
+                                                                       "item 2"
+                                                                     ]
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            var console = new TestConsole();
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """
+                                                                   {
+                                                                     "Array": [
+                                                                       "1 item",
+                                                                       null,
+                                                                       "3 item"
+                                                                     ]
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
 
-            var exitCode = await command.InvokeAsync(args, console);
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
 
-            return (exitCode, console);
-        }
+        Assert.Equal(0, exitCode);
+
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "Array": [
+                         "1 item",
+                         null,
+                         "3 item"
+                       ]
+                     }
+                     """, content);
+    }
+
+    [Fact]
+    public async Task MergeWithNewArrayWorkCorrectly()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """
+                                                                   {
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
+
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """
+                                                                   {
+                                                                     "Array": [
+                                                                       "item 1",
+                                                                       "item 2"
+                                                                     ]
+                                                                   }
+                                                                   """, TestContext.Current.CancellationToken);
+
+        var (exitCode, console) = await RunCommand(
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"));
+
+        Assert.Equal(0, exitCode);
+
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "a.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "Array": [
+                         "item 1",
+                         "item 2"
+                       ]
+                     }
+                     """, content);
+    }
+
+    private static async Task<(int exitCode, IConsole console)> RunCommand(params string[] args)
+    {
+        var command = new MergeCommand();
+
+        var console = new TestConsole();
+
+        var exitCode = await command.InvokeAsync(args, console);
+
+        return (exitCode, console);
     }
 }

@@ -1,138 +1,135 @@
-using System;
 using System.CommandLine;
 using System.CommandLine.IO;
-using System.IO;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Xunit;
 
-namespace dotnet_json.Tests
+namespace dotnet_json.Tests;
+
+public sealed class IntegrationTests : IDisposable
 {
-    public class IntegrationTests : IDisposable
+    private readonly string _tmpDir;
+
+    public IntegrationTests()
     {
-        private string _tmpDir;
+        _tmpDir = Path.Join(Path.GetTempPath(), Path.GetTempFileName());
+        Directory.CreateDirectory(_tmpDir);
+    }
 
-        public IntegrationTests()
-        {
-            _tmpDir = Path.Join(Path.GetTempPath(), Path.GetTempFileName());
-            Directory.CreateDirectory(_tmpDir);
-        }
+    public void Dispose()
+    {
+        Directory.Delete(_tmpDir, true);
+    }
 
-        public void Dispose()
-        {
-            Directory.Delete(_tmpDir, true);
-        }
+    [Fact]
+    public async Task Set()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "set.json"), """{ "key": "value" }""", TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task Set()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "set.json"), @"{ ""key"": ""value"" }");
+        var (exitCode, console) = await RunCommand([
+            "set",
+            Path.Join(_tmpDir, "set.json"),
+            "path:to:0:key",
+            "value"
+        ]);
 
-            var (exitCode, console) = await RunCommand(new[]
-            {
-                "set",
-                Path.Join(_tmpDir, "set.json"),
-                "path:to:0:key",
-                "value",
-            });
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "set.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "key": "value",
+                       "path": {
+                         "to": [
+                           {
+                             "key": "value"
+                           }
+                         ]
+                       }
+                     }
+                     """, content);
+    }
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "set.json"));
-            content.Should().Be(@"{
-  ""key"": ""value"",
-  ""path"": {
-    ""to"": [
-      {
-        ""key"": ""value""
-      }
-    ]
-  }
-}");
-        }
+    [Fact]
+    public async Task Remove()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "remove.json"), """{ "key": "value", "path": { "to": [ { "key": "value" } ] } }""", TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task Remove()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "remove.json"), @"{ ""key"": ""value"", ""path"": { ""to"": [ { ""key"": ""value"" } ] } }");
+        var (exitCode, console) = await RunCommand([
+            "remove",
+            Path.Join(_tmpDir, "remove.json"),
+            "path:to:0:key"
+        ]);
 
-            var (exitCode, console) = await RunCommand(new[]
-            {
-                "remove",
-                Path.Join(_tmpDir, "remove.json"),
-                "path:to:0:key",
-            });
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "remove.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "key": "value",
+                       "path": {
+                         "to": [
+                           {}
+                         ]
+                       }
+                     }
+                     """, content);
+    }
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "remove.json"));
-            content.Should().Be(@"{
-  ""key"": ""value"",
-  ""path"": {
-    ""to"": [
-      {}
-    ]
-  }
-}");
-        }
+    [Fact]
+    public async Task Merge()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), "{}", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """{ "b": { "key": "value" } }""", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "c.json"), """{ "c": [ 1 ] }""", TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task Merge()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), "{}");
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), @"{ ""b"": { ""key"": ""value"" } }");
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "c.json"), @"{ ""c"": [ 1 ] }");
+        var (exitCode, console) = await RunCommand([
+            "merge",
+            Path.Join(_tmpDir, "a.json"),
+            Path.Join(_tmpDir, "b.json"),
+            Path.Join(_tmpDir, "c.json"),
+            "-o",
+            Path.Join(_tmpDir, "d.json")
+        ]);
 
-            var (exitCode, console) = await RunCommand(new[]
-            {
-                "merge",
-                Path.Join(_tmpDir, "a.json"),
-                Path.Join(_tmpDir, "b.json"),
-                Path.Join(_tmpDir, "c.json"),
-                "-o",
-                Path.Join(_tmpDir, "d.json"),
-            });
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "d.json"), TestContext.Current.CancellationToken);
+        Assert.Equal("""
+                     {
+                       "b": {
+                         "key": "value"
+                       },
+                       "c": [
+                         1
+                       ]
+                     }
+                     """, content);
+    }
 
-            var content = await File.ReadAllTextAsync(Path.Join(_tmpDir, "d.json"));
-            content.Should().Be(@"{
-  ""b"": {
-    ""key"": ""value""
-  },
-  ""c"": [
-    1
-  ]
-}");
-        }
+    [Fact]
+    public async Task Get()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"key": "value"}""", TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task Get()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{""key"": ""value""}");
+        var (exitCode, console) = await RunCommand([
+            "get",
+            Path.Join(_tmpDir, "a.json"),
+            "key"
+        ]);
 
-            var (exitCode, console) = await RunCommand(new[]
-            {
-                "get",
-                Path.Join(_tmpDir, "a.json"),
-                "key",
-            });
+        Assert.Equal(0, exitCode);
 
-            exitCode.Should().Be(0);
+        Assert.Empty(console.Error.ToString() ?? "");
+        Assert.Equal("value\n", console.Out.ToString());
+    }
 
-            console.Error.ToString().Should().BeEmpty();
-            console.Out.ToString().Should().Be("value\n");
-        }
+    private static async Task<(int ExitCode, IConsole Console)> RunCommand(string[] args)
+    {
+        var rootCommand = Program.CreateRootCommand();
 
-        private async Task<(int ExitCode, IConsole Console)> RunCommand(string[] args)
-        {
-            var rootCommand = Program.CreateRootCommand();
+        var console = new TestConsole();
 
-            var console = new TestConsole();
+        var exitCode = await rootCommand.InvokeAsync(args, console);
 
-            var exitCode = await rootCommand.InvokeAsync(args, console);
-
-            return (exitCode, console);
-        }
+        return (exitCode, console);
     }
 }

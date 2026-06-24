@@ -1,89 +1,89 @@
-using System;
 using System.CommandLine;
 using System.CommandLine.IO;
-using System.IO;
-using System.Threading.Tasks;
 using dotnet_json.Commands;
-using FluentAssertions;
 using Xunit;
 
-namespace dotnet_json.Tests.Commands
+namespace dotnet_json.Tests.Commands;
+
+public sealed class GetCommandTests : IDisposable
 {
-    public class GetCommandTests : IDisposable
+    private readonly string _tmpDir;
+
+    public GetCommandTests()
     {
-        private readonly string _tmpDir;
+        _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(_tmpDir);
+    }
 
-        public GetCommandTests()
-        {
-            _tmpDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-            Directory.CreateDirectory(_tmpDir);
-        }
+    public void Dispose()
+    {
+        Directory.Delete(_tmpDir, true);
+    }
 
-        public void Dispose()
-        {
-            Directory.Delete(_tmpDir, true);
-        }
+    [Theory]
+    [InlineData("""{"key": "value"}""", "key", "value")]
+    [InlineData("""{"key": 3.14}""", "key", "3.14")]
+    [InlineData("""{"key": null}""", "key", "null")]
+    [InlineData("""{"key": true}""", "key", "true")]
+    public async Task ReturnsCorrectValue(string json, string key, string expected)
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), json, TestContext.Current.CancellationToken);
 
-        [Theory]
-        [InlineData(@"{""key"": ""value""}", "key", "value")]
-        [InlineData(@"{""key"": 3.14}", "key", "3.14")]
-        [InlineData(@"{""key"": null}", "key", "null")]
-        [InlineData(@"{""key"": true}", "key", "true")]
-        public async Task ReturnsCorrectValue(string json, string key, string expected)
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), json);
+        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), key);
 
-            var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), key);
+        Assert.Equal(0, exitCode);
+        Assert.Empty(console.Error.ToString() ?? "");
+        Assert.Equal($"{expected}\n", console.Out.ToString());
+    }
 
-            exitCode.Should().Be(0);
-            console.Error.ToString().Should().BeEmpty();
-            console.Out.ToString().Should().Be($"{expected}\n");
-        }
+    [Fact]
+    public async Task ReturnsErrorWhenKeyDoesntExist()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"key": "value"}""", TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task ReturnsErrorWhenKeyDoesntExist()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{""key"": ""value""}");
+        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "value");
 
-            var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "value");
+        Assert.Equal(1, exitCode);
+        Assert.Contains("Key 'value' does not exist in the json", console.Error.ToString());
+    }
 
-            exitCode.Should().Be(1);
-            console.Error.ToString().Should().Contain("Key 'value' does not exist in the json");
-        }
+    [Fact]
+    public async Task ReturnsJsonValueWhenKeyIsComplexObject()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"nested": {"key": "value"}}""", TestContext.Current.CancellationToken);
 
-        [Fact]
-        public async Task ReturnsJsonValueWhenKeyIsComplexObject()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{""nested"": {""key"": ""value""}}");
+        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested");
 
-            var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested");
+        Assert.Equal(0, exitCode);
+        Assert.Empty(console.Error.ToString() ?? "");
+        Assert.Equal("""
+                     {
+                       "key": "value"
+                     }
 
-            exitCode.Should().Be(0);
-            console.Error.ToString().Should().BeEmpty();
-            console.Out.ToString().Should().Be("{\n  \"key\": \"value\"\n}\n");
-        }
+                     """, console.Out.ToString());
+    }
 
-        [Fact]
-        public async Task ReturnsErrorWhenKeyIsComplexObjectWithExact()
-        {
-            await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), @"{""nested"": {""key"": ""value""}}");
+    [Fact]
+    public async Task ReturnsErrorWhenKeyIsComplexObjectWithExact()
+    {
+        await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"nested": {"key": "value"}}""", TestContext.Current.CancellationToken);
 
-            var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested", "-e");
+        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested", "-e");
 
-            exitCode.Should().Be(1);
-            console.Error.ToString().Should().Contain("x");
-            console.Out.ToString().Should().BeEmpty();
-        }
+        Assert.Equal(1, exitCode);
+        Assert.Contains("x", console.Error.ToString());
+        Assert.Empty(console.Out.ToString() ?? "");
+    }
 
-        private async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
-        {
-            var command = new GetCommand();
+    private static async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
+    {
+        var command = new GetCommand();
 
-            var console = new TestConsole();
+        var console = new TestConsole();
 
-            var exitCode = await command.InvokeAsync(arguments, console);
+        var exitCode = await command.InvokeAsync(arguments, console);
 
-            return (exitCode, console);
-        }
+        return (exitCode, console);
     }
 }
