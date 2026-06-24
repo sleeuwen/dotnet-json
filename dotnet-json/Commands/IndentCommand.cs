@@ -1,3 +1,4 @@
+using System.CommandLine;
 using dotnet_json.Core;
 
 namespace dotnet_json.Commands;
@@ -8,14 +9,14 @@ public class IndentCommand : CommandBase
     {
     }
 
-    protected override async Task<int> ExecuteAsync()
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         JsonDocument document;
 
-        await using (var inputStream = GetInputStream())
+        await using (var inputStream = GetInputStream(parseResult))
             document = JsonDocument.ReadFromStream(inputStream);
 
-        await using (var outputStream = GetOutputStream())
+        await using (var outputStream = GetOutputStream(parseResult))
             document.WriteToStream(outputStream);
 
         return 0;

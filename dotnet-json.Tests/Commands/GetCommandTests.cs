@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.IO;
 using dotnet_json.Commands;
 using Xunit;
 
@@ -29,11 +28,11 @@ public sealed class GetCommandTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), json, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), key);
+        var (exitCode, output, error) = await RunCommand(Path.Join(_tmpDir, "a.json"), key);
 
         Assert.Equal(0, exitCode);
-        Assert.Empty(console.Error.ToString() ?? "");
-        Assert.Equal($"{expected}\n", console.Out.ToString());
+        Assert.Empty(error);
+        Assert.Equal($"{expected}\n", output);
     }
 
     [Fact]
@@ -41,10 +40,10 @@ public sealed class GetCommandTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"key": "value"}""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "value");
+        var (exitCode, _, error) = await RunCommand(Path.Join(_tmpDir, "a.json"), "value");
 
         Assert.Equal(1, exitCode);
-        Assert.Contains("Key 'value' does not exist in the json", console.Error.ToString());
+        Assert.Contains("Key 'value' does not exist in the json", error);
     }
 
     [Fact]
@@ -52,16 +51,16 @@ public sealed class GetCommandTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"nested": {"key": "value"}}""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested");
+        var (exitCode, output, error) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested");
 
         Assert.Equal(0, exitCode);
-        Assert.Empty(console.Error.ToString() ?? "");
+        Assert.Empty(error);
         Assert.Equal("""
                      {
                        "key": "value"
                      }
 
-                     """, console.Out.ToString());
+                     """, output);
     }
 
     [Fact]
@@ -69,21 +68,13 @@ public sealed class GetCommandTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"nested": {"key": "value"}}""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested", "-e");
+        var (exitCode, output, error) = await RunCommand(Path.Join(_tmpDir, "a.json"), "nested", "-e");
 
         Assert.Equal(1, exitCode);
-        Assert.Contains("x", console.Error.ToString());
-        Assert.Empty(console.Out.ToString() ?? "");
+        Assert.Contains("x", error);
+        Assert.Empty(output);
     }
 
-    private static async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
-    {
-        var command = new GetCommand();
-
-        var console = new TestConsole();
-
-        var exitCode = await command.InvokeAsync(arguments, console);
-
-        return (exitCode, console);
-    }
+    private static Task<(int exitCode, string Out, string Error)> RunCommand(params string[] arguments)
+        => TestHelpers.RunCommand(new GetCommand(), arguments);
 }

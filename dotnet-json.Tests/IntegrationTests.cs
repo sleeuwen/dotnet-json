@@ -1,5 +1,3 @@
-using System.CommandLine;
-using System.CommandLine.IO;
 using Xunit;
 
 namespace dotnet_json.Tests;
@@ -24,7 +22,7 @@ public sealed class IntegrationTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "set.json"), """{ "key": "value" }""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand([
+        var (exitCode, _, _) = await RunCommand([
             "set",
             Path.Join(_tmpDir, "set.json"),
             "path:to:0:key",
@@ -53,7 +51,7 @@ public sealed class IntegrationTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "remove.json"), """{ "key": "value", "path": { "to": [ { "key": "value" } ] } }""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand([
+        var (exitCode, _, _) = await RunCommand([
             "remove",
             Path.Join(_tmpDir, "remove.json"),
             "path:to:0:key"
@@ -81,7 +79,7 @@ public sealed class IntegrationTests : IDisposable
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """{ "b": { "key": "value" } }""", TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "c.json"), """{ "c": [ 1 ] }""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand([
+        var (exitCode, _, _) = await RunCommand([
             "merge",
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"),
@@ -110,26 +108,17 @@ public sealed class IntegrationTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "a.json"), """{"key": "value"}""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand([
+        var (exitCode, output, error) = await RunCommand([
             "get",
             Path.Join(_tmpDir, "a.json"),
             "key"
         ]);
 
         Assert.Equal(0, exitCode);
-
-        Assert.Empty(console.Error.ToString() ?? "");
-        Assert.Equal("value\n", console.Out.ToString());
+        Assert.Empty(error);
+        Assert.Equal("value\n", output);
     }
 
-    private static async Task<(int ExitCode, IConsole Console)> RunCommand(string[] args)
-    {
-        var rootCommand = Program.CreateRootCommand();
-
-        var console = new TestConsole();
-
-        var exitCode = await rootCommand.InvokeAsync(args, console);
-
-        return (exitCode, console);
-    }
+    private static Task<(int ExitCode, string Out, string Error)> RunCommand(string[] args)
+        => TestHelpers.RunCommand(Program.CreateRootCommand(), args);
 }

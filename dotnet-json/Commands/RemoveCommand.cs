@@ -1,43 +1,44 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
 using dotnet_json.Core;
 
 namespace dotnet_json.Commands;
 
-public class RemoveCommand : CommandBase, ICommandHandler
+public class RemoveCommand : CommandBase
 {
-    private Argument<string> Key = new Argument<string>("key", "The JSON key to remove") { Arity = ArgumentArity.ExactlyOne };
+    private Argument<string> Key = new("key")
+    {
+        Description = "The JSON key to remove",
+        Arity = ArgumentArity.ExactlyOne
+    };
 
     public RemoveCommand()
         : base("remove", "Remove a value from the json")
     {
-        Key.AddValidator(symbol =>
+        Key.Validators.Add(symbol =>
         {
             if (symbol.Tokens.Count == 1 && string.IsNullOrEmpty(symbol.Tokens[0].Value))
-                symbol.ErrorMessage = "Removing an empty key is not allowed.";
+                symbol.AddError("Removing an empty key is not allowed.");
         });
-        AddArgument(Key);
+        Arguments.Add(Key);
 
-        AddAlias("rm");
+        Aliases.Add("rm");
 
-        AddOption(Compressed);
-
-        Handler = this;
+        Options.Add(Compressed);
     }
 
-    protected override async Task<int> ExecuteAsync()
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var key = GetParameterValue(Key) ?? throw new ArgumentException("Missing argument <key>");
+        var key = parseResult.GetValue(Key) ?? throw new ArgumentException("Missing argument <key>");
 
         JsonDocument document;
 
-        await using (var inputStream = GetInputStream())
+        await using (var inputStream = GetInputStream(parseResult))
             document = JsonDocument.ReadFromStream(inputStream);
 
         document.Remove(key);
 
-        await using (var outputStream = GetOutputStream())
-            document.WriteToStream(outputStream, GetFormatting());
+        await using (var outputStream = GetOutputStream(parseResult))
+            document.WriteToStream(outputStream, GetFormatting(parseResult, Compressed));
 
         return 0;
     }

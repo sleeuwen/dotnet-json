@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.IO;
 using dotnet_json.Commands;
 using Xunit;
 
@@ -18,11 +17,11 @@ public class FileArgumentTests
             var filename = Path.Combine(tmpDir, "file.json");
             await File.WriteAllTextAsync(Path.Combine(tmpDir, filename), "{}", TestContext.Current.CancellationToken);
 
-            var (exitCode, console) = await RunCommand(filename);
+            var (exitCode, output, error) = await RunCommand(filename);
 
             Assert.Equal(0, exitCode);
-            Assert.Empty(console.Error.ToString() ?? "");
-            Assert.Contains("Success", console.Out.ToString());
+            Assert.Empty(error);
+            Assert.Contains("Success", output);
         }
         finally
         {
@@ -33,48 +32,44 @@ public class FileArgumentTests
     [Fact]
     public async Task SucceedsWithStandardInputOutput()
     {
-        var (exitCode, console) = await RunCommand("-");
+        var (exitCode, output, error) = await RunCommand("-");
 
         Assert.Equal(0, exitCode);
-        Assert.Empty(console.Error.ToString() ?? "");
-        Assert.Contains("Success", console.Out.ToString());
+        Assert.Empty(error);
+        Assert.Contains("Success", output);
     }
 
     [Fact]
     public async Task ThrowsWhenFileDoesNotExist()
     {
-        var (exitCode, console) = await RunCommand("this-file-does-not-exist.json");
+        var (exitCode, _, error) = await RunCommand("this-file-does-not-exist.json");
 
         Assert.NotEqual(0, exitCode);
-        Assert.Contains("File does not exist: this-file-does-not-exist.json", console.Error.ToString());
+        Assert.Contains("File does not exist: this-file-does-not-exist.json", error);
     }
 
     [Fact]
     public async Task DoesNotThrowOnNonExistingFileIfAllowNewFileIsTrue()
     {
-        var (exitCode, console) = await RunCommand("this-file-does-not-exist.json", allowNewFile: true);
+        var (exitCode, output, error) = await RunCommand("this-file-does-not-exist.json", allowNewFile: true);
 
         Assert.Equal(0, exitCode);
-        Assert.Empty(console.Error.ToString() ?? "");
-        Assert.Contains("Success", console.Out.ToString());
+        Assert.Empty(error);
+        Assert.Contains("Success", output);
     }
 
-    private static async Task<(int ExitCode, IConsole Console)> RunCommand(string filename, bool allowNewFile = false)
+    private static Task<(int ExitCode, string Out, string Error)> RunCommand(string filename, bool allowNewFile = false)
     {
         var file = new FileArgument("file");
         file.AllowNewFile = allowNewFile;
 
         var command = new RootCommand();
-        command.AddArgument(file);
-
-        var console = new TestConsole();
-
-        command.SetHandler((string file) =>
+        command.Arguments.Add(file);
+        command.SetAction((ParseResult parseResult) =>
         {
-            console.Out.Write("Success " + file);
-        }, file);
+            parseResult.InvocationConfiguration.Output.Write("Success " + parseResult.GetValue(file));
+        });
 
-        var exitCode = await command.InvokeAsync(filename, console);
-        return (exitCode, console);
+        return TestHelpers.RunCommand(command, filename);
     }
 }

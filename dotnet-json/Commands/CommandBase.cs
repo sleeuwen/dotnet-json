@@ -1,47 +1,40 @@
 using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
-using System.Diagnostics.CodeAnalysis;
 using Newtonsoft.Json;
 
 namespace dotnet_json.Commands;
 
-public abstract class CommandBase : Command, ICommandHandler
+public abstract class CommandBase : Command
 {
-    protected FileArgument InputFile = new FileArgument("file", "The JSON file (use '-' for STDIN)");
+    protected FileArgument InputFile = new("file")
+    {
+        Description = "The JSON file (use '-' for STDIN)",
+    };
 
-    protected FileOption OutputFile = new FileOption(new[] { "-o", "--output" }, "The output file (use '-' for STDOUT, defaults to <file>)") { AllowNewFile = true };
+    protected FileOption OutputFile = new("--output", "-o")
+    {
+        Description = "The output file (use '-' for STDOUT, defaults to <file>)",
+        AllowNewFile = true
+    };
 
-    protected Option<bool> Compressed = new Option<bool>(new[] { "-c", "--compressed" }, "Write the output in compressed form (defaults to indented)");
-
-    protected InvocationContext? Context = null;
+    protected Option<bool> Compressed = new("--compressed", "-c")
+    {
+        Description = "Write the output in compressed form (defaults to indented)"
+    };
 
     protected CommandBase(string name, string? description = null, bool includeOutputOption = true)
         : base(name, description)
     {
-        AddArgument(InputFile);
+        Arguments.Add(InputFile);
 
         if (includeOutputOption)
-            AddOption(OutputFile);
+            Options.Add(OutputFile);
 
-        Handler = this;
+        this.SetAction(ExecuteAsync);
     }
 
-    public int Invoke(InvocationContext context)
+    protected Stream GetInputStream(ParseResult parseResult)
     {
-        return InvokeAsync(context).GetAwaiter().GetResult();
-    }
-
-    public Task<int> InvokeAsync(InvocationContext context)
-    {
-        Context = context;
-
-        return ExecuteAsync();
-    }
-
-    protected Stream GetInputStream()
-    {
-        var filename = Context?.ParseResult.GetValueForArgument(InputFile) ?? throw new Exception("GetInputStream must be called from a command handler");
+        var filename = parseResult.GetValue(InputFile) ?? throw new Exception("GetInputStream must be called from a command handler");
 
         return filename switch
         {
@@ -50,11 +43,11 @@ public abstract class CommandBase : Command, ICommandHandler
         };
     }
 
-    protected Stream GetOutputStream()
+    protected Stream GetOutputStream(ParseResult parseResult)
     {
-        var filename = Context?.ParseResult.HasOption(OutputFile) ?? throw new Exception("GetOutputStream() must be called from a command handler")
-            ? Context.ParseResult.GetValueForOption(OutputFile)
-            : Context.ParseResult.GetValueForArgument(InputFile);
+        var filename = parseResult.GetResult(OutputFile) != null
+            ? parseResult.GetValue(OutputFile)
+            : parseResult.GetValue(InputFile);
 
         return filename switch
         {
@@ -63,19 +56,10 @@ public abstract class CommandBase : Command, ICommandHandler
         };
     }
 
-    protected Formatting GetFormatting()
+    protected static Formatting GetFormatting(ParseResult parseResult, Option<bool> compressed)
     {
-        return Context?.ParseResult.HasOption(Compressed) ?? throw new Exception("GetFormatting() must be called from a command handler")
-            ? Formatting.None
-            : Formatting.Indented;
+        return parseResult.GetValue(compressed) ? Formatting.None : Formatting.Indented;
     }
 
-    [return: MaybeNull]
-    protected T GetParameterValue<T>(Argument<T> argument)
-    {
-        return (Context ?? throw new Exception("GetParameterValue() must be called from a command handler"))
-            .ParseResult.GetValueForArgument(argument);
-    }
-
-    protected abstract Task<int> ExecuteAsync();
+    protected abstract Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken);
 }

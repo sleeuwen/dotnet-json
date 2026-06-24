@@ -1,5 +1,4 @@
 using System.CommandLine;
-using System.CommandLine.IO;
 using dotnet_json.Core;
 using Newtonsoft.Json.Linq;
 
@@ -7,40 +6,47 @@ namespace dotnet_json.Commands;
 
 public class GetCommand : CommandBase
 {
-    private Argument<string> Key = new Argument<string>("key", "The key to get (use ':' to get a nested object and use index numbers to get array values eg. nested:key or nested:1:key)") { Arity = ArgumentArity.ExactlyOne };
+    private Argument<string> Key = new("key")
+    {
+        Description = "The key to get (use ':' to get a nested object and use index numbers to get array values eg. nested:key or nested:1:key)",
+        Arity = ArgumentArity.ExactlyOne,
+    };
 
-    private Option<bool> Exact = new Option<bool>(new[] { "-e", "--exact" }, "only return exact value matches, this will return an error for references to nested objects/arrays.");
+    private Option<bool> Exact = new("--exact", "-e")
+    {
+        Description = "only return exact value matches, this will return an error for references to nested objects/arrays."
+    };
 
     public GetCommand()
         : base("get", "Read a value from a JSON file.", false)
     {
-        AddArgument(Key);
-        AddOption(Exact);
+        Arguments.Add(Key);
+        Options.Add(Exact);
     }
 
-    protected override async Task<int> ExecuteAsync()
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var key = GetParameterValue(Key) ?? throw new ArgumentException("Missing argument <key>");
+        var key = parseResult.GetValue(Key) ?? throw new ArgumentException("Missing argument <key>");
 
         JsonDocument document;
 
-        await using (var inputStream = GetInputStream())
+        await using (var inputStream = GetInputStream(parseResult))
             document = JsonDocument.ReadFromStream(inputStream);
 
         var result = document[key];
         if (result == null)
         {
-            Context!.Console.Error.WriteLine($"Key '{key}' does not exist in the json");
+            parseResult.InvocationConfiguration.Error.WriteLine($"Key '{key}' does not exist in the json");
             return 1;
         }
 
-        if (Context!.ParseResult.GetValueForOption(Exact) && !(result is JValue))
+        if (parseResult.GetValue(Exact) && !(result is JValue))
         {
-            Context!.Console.Error.WriteLine($"Value for key '{key}' is a complex object.");
+            parseResult.InvocationConfiguration.Error.WriteLine($"Value for key '{key}' is a complex object.");
             return 1;
         }
 
-        Context!.Console.Out.WriteLine(ToString(result));
+        parseResult.InvocationConfiguration.Output.WriteLine(ToString(result));
         return 0;
     }
 

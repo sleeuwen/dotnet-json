@@ -1,5 +1,3 @@
-using System.CommandLine;
-using System.CommandLine.IO;
 using dotnet_json.Commands;
 using Xunit;
 
@@ -38,7 +36,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    """, TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "b.json"), """{ "a": 1 }""", TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -70,7 +68,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    }
                                                                    """, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -101,7 +99,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    }
                                                                    """, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -135,7 +133,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    }
                                                                    """, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -180,7 +178,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    }
                                                                    """, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -227,7 +225,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    }
                                                                    """, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -262,7 +260,7 @@ public sealed class MergeCommandTests : IDisposable
                                                                    }
                                                                    """, TestContext.Current.CancellationToken);
 
-        var (exitCode, console) = await RunCommand(
+        var (exitCode, _, _) = await RunCommand(
             Path.Join(_tmpDir, "a.json"),
             Path.Join(_tmpDir, "b.json"));
 
@@ -279,14 +277,6 @@ public sealed class MergeCommandTests : IDisposable
                      """, content);
     }
 
-    private static async Task<(int exitCode, IConsole console)> RunCommand(params string[] args)
-    {
-        var command = new MergeCommand();
-
-        var console = new TestConsole();
-
-        var exitCode = await command.InvokeAsync(args, console);
-
-        return (exitCode, console);
-    }
+    private static Task<(int exitCode, string Out, string Error)> RunCommand(params string[] args)
+        => TestHelpers.RunCommand(new MergeCommand(), args);
 }

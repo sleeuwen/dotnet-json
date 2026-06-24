@@ -4,33 +4,29 @@ namespace dotnet_json.Commands;
 
 public class FileOption : Option<string>
 {
-    public FileOption(string alias, string? description = null)
-        : base(alias, description)
+    public FileOption(string name, params string[] aliases)
+        : base(name, aliases)
     {
-        base.Arity = ArgumentArity.ExactlyOne;
-        this.AddValidator();
-    }
-
-    public FileOption(string[] aliases, string? description = null)
-        : base(aliases, description)
-    {
-        base.Arity = ArgumentArity.ExactlyOne;
-        this.AddValidator();
+        Arity = ArgumentArity.ExactlyOne;
+        AddValidator();
     }
 
     public bool AllowNewFile { get; set; }
 
     private void AddValidator()
     {
-        this.AddValidator(symbol =>
+        this.Validators.Add(symbol =>
         {
-            symbol.ErrorMessage ??= symbol.Tokens
+            var error = symbol.Tokens
                 .Select(t => t.Value)
-                .Where(_ => !AllowNewFile) // Need to check AllowNewFile at this point because AddValidator() is called from constructor
+                .Where(_ => !AllowNewFile)
                 .Where(filePath => filePath != "-")
                 .Where(filePath => !File.Exists(filePath))
                 .Select(filePath => $"File does not exist: {filePath}")
                 .FirstOrDefault();
+
+            if (error != null)
+                symbol.AddError(error);
         });
     }
 }

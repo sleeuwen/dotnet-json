@@ -1,5 +1,3 @@
-using System.CommandLine;
-using System.CommandLine.IO;
 using dotnet_json.Commands;
 using Newtonsoft.Json.Linq;
 using Xunit;
@@ -28,7 +26,7 @@ public sealed class SetCommandTests : IDisposable
     {
         await File.WriteAllTextAsync(Path.Join(_tmpDir, "test.json"), json, TestContext.Current.CancellationToken);
 
-        var (exitCode, _) = await RunCommand(Path.Join(_tmpDir, "test.json"), key, value);
+        var (exitCode, _, _) = await RunCommand(Path.Join(_tmpDir, "test.json"), key, value);
 
         Assert.Equal(0, exitCode);
 
@@ -45,7 +43,7 @@ public sealed class SetCommandTests : IDisposable
         var filename = Path.Join(_tmpDir, "test.json");
         await File.WriteAllTextAsync(filename, json, TestContext.Current.CancellationToken);
 
-        var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
+        var (exitCode, _, _) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
 
         Assert.Equal(0, exitCode);
 
@@ -60,7 +58,7 @@ public sealed class SetCommandTests : IDisposable
         var filename = Path.Join(_tmpDir, "test.json");
         await File.WriteAllTextAsync(filename, json, TestContext.Current.CancellationToken);
 
-        var (exitCode, output) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
+        var (exitCode, _, _) = await RunCommand(filename, "key2", "newvalue", "--compressed", "--existing");
 
         Assert.Equal(0, exitCode);
 
@@ -68,14 +66,6 @@ public sealed class SetCommandTests : IDisposable
         Assert.Equal("""{"key1":"value","key2":"newvalue"}""", contents);
     }
 
-    private static async Task<(int exitCode, IConsole console)> RunCommand(params string[] arguments)
-    {
-        var command = new SetCommand();
-
-        var console = new TestConsole();
-
-        var exitCode = await command.InvokeAsync(arguments, console);
-
-        return (exitCode, console);
-    }
+    private static Task<(int exitCode, string Out, string Error)> RunCommand(params string[] arguments)
+        => TestHelpers.RunCommand(new SetCommand(), arguments);
 }

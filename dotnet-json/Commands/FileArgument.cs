@@ -4,13 +4,8 @@ namespace dotnet_json.Commands;
 
 public class FileArgument : Argument<string>
 {
-    public FileArgument()
-    {
-        AddValidator();
-    }
-
-    public FileArgument(string name, string? description = null)
-        : base(name, description)
+    public FileArgument(string name)
+        : base(name)
     {
         AddValidator();
     }
@@ -19,15 +14,18 @@ public class FileArgument : Argument<string>
 
     private void AddValidator()
     {
-        this.AddValidator(symbol =>
+        this.Validators.Add(symbol =>
         {
-            symbol.ErrorMessage ??= symbol.Tokens
+            var error = symbol.Tokens
                 .Select(t => t.Value)
-                .Where(_ => !AllowNewFile) // Need to check AllowNewFile at this point because AddValidator() is called from constructor
+                .Where(_ => !AllowNewFile)
                 .Where(filePath => filePath != "-")
                 .Where(filePath => !File.Exists(filePath))
                 .Select(filePath => $"File does not exist: {filePath}")
                 .FirstOrDefault();
+
+            if (error != null)
+                symbol.AddError(error);
         });
     }
 }
